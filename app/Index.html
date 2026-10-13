@@ -7,12 +7,12 @@
 <script>
 /* ===================== 정다미 자산 주소 =====================
    이미지·글꼴은 모두 이 한 줄의 주소 아래에서 불러온다.
-   (GitHub 공개 저장소 + jsDelivr. 저장소/태그가 바뀌면 이 줄만 고치면 된다.) */
-var ASSET_BASE = 'https://cdn.jsdelivr.net/gh/woongda0303/dami-assets@4fe67cf8f66c276e120abdfe0a7240dbbaa6eb63/';
+   (GitHub 공개 저장소 woongda0303/dami-assets 의 GitHub Pages. 주소가 바뀌면 이 줄만 고치면 된다.) */
+var ASSET_BASE = 'https://woongda0303.github.io/dami-assets/';
 function ASSET(p){ return ASSET_BASE + p; }
 (function(){
   var st = document.createElement('style');
-  st.textContent = "@font-face{font-family:'GoGoDing';src:url('" + ASSET('fonts/gogoding-ksx.woff2') + "') format('woff2');font-display:swap;font-weight:400;font-style:normal;}";
+  st.textContent = "@font-face{font-family:'BaeEunHye';src:url('" + ASSET('fonts/baeeunhye-ksx.woff2') + "') format('woff2');font-display:swap;font-weight:400;font-style:normal;}";
   document.head.appendChild(st);
 })();
 </script>
@@ -23,9 +23,9 @@ function ASSET(p){ return ASSET_BASE + p; }
     --paper:#FFFCF7; --cream:#FBF3E9; --beige:#F5E9DC; --caramel:#C99B78; --coral:#DE7466; --coral-2:#F6C6BE;
     --green-main:#5F9A70; --yellow:#F2C14E; --line:#DFC4AD; --soft-shadow:#DEC5AF;
     --font-body:"Noto Sans KR","Noto Sans CJK KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
-    --font-display:"GoGoDing","Noto Sans KR","Malgun Gothic",sans-serif;
+    --font-display:"BaeEunHye","Noto Sans KR","Malgun Gothic",sans-serif;
     /* 원본 코드(동적 HTML)가 쓰는 변수 이름은 그대로 두고 값만 새 팔레트로 바꾼다 */
-    --bg:#FFFCF7; --card:#FFFFFF; --border:#E6D3C2; --ink:#4A2F23; --muted:#906C59;
+    --bg:#FFFCF7; --card:#FFFFFF; --border:#E6D3C2; --ink:#4A2F23; --muted:#765747;
     --accent:#DE7466; --accent-dark:#8E4A3E; --accent-tint:#FFF0EB;
     --good:#4F8A60; --good-tint:#E9F4E9; --bad:#BD594B; --bad-tint:#FFE7E1;
     --warn:#8B6420; --warn-tint:#FFF3D2;
@@ -41,8 +41,9 @@ function ASSET(p){ return ASSET_BASE + p; }
   a{text-decoration:none; color:inherit;}
   /* 도트 화면: 둥근 모서리는 쓰지 않는다 (원형 도넛·스피너는 예외) */
   .screen *:not(.spinner):not(.round){border-radius:0 !important;}
-  img.pixel, .pixel img{image-rendering:pixelated; image-rendering:crisp-edges;}
-  .display, h1, h2, .pagetitle, .sectitle, button, .btn, .chip, .badge, .admtab, .eyebrow{font-family:var(--font-display); letter-spacing:.01em;}
+  img.pixel, .pixel img, .avatar img, .mini-face, .login-loading-emoji{image-rendering:auto; backface-visibility:hidden;}
+  /* 배은혜체(장식): 페이지 제목·버튼·배지·점수·KPI·상태 강조. 본문·입력·표는 Noto Sans KR */
+  .display, h1, h2, .pagetitle, .bb-title, button, .btn, .chip, .badge, .admtab, .eyebrow{font-family:var(--font-display); font-weight:900; -webkit-text-stroke:.15px currentColor; letter-spacing:.015em;}
 
   /* ---- 화면 틀 ---- */
   .screen{display:none; width:100%; max-width:430px; margin:0 auto; min-height:100vh; flex-direction:column; background:var(--paper); border-left:3px solid var(--ink); border-right:3px solid var(--ink); box-shadow:8px 0 0 var(--caramel);}
@@ -107,7 +108,7 @@ function ASSET(p){ return ASSET_BASE + p; }
   /* ---- 정다미 ---- */
   .mascot{object-fit:contain; display:block;}
   .avatar{width:58px; height:58px; flex-shrink:0; background:var(--beige); border:2px solid var(--ink); box-shadow:3px 3px 0 var(--caramel); display:flex; align-items:center; justify-content:center; overflow:hidden; font-family:var(--font-display); font-size:26px; color:var(--accent-dark);}
-  .avatar img{width:52px !important; height:52px !important; object-fit:contain !important; image-rendering:pixelated;}
+  .avatar img{width:48px !important; height:48px !important; object-fit:contain !important;}
   .help-strip{display:flex; gap:10px; align-items:center; background:#FFF0E8; border:2px solid var(--ink); padding:10px;}
   .help-strip img{width:84px; height:84px; object-fit:contain; flex:0 0 auto;}
   .help-strip b{font-family:var(--font-display); font-weight:400; font-size:18px;}
@@ -124,7 +125,7 @@ function ASSET(p){ return ASSET_BASE + p; }
   .spark.a{right:22px; bottom:18px;} .spark.b{left:16px; top:22px; animation-delay:.5s;}
   @keyframes blink{50%{opacity:.25; transform:translateY(-2px);}}
   .apptitle{font-family:var(--font-display); font-size:36px; margin:4px 0; font-weight:400;}
-  .login-loading-emoji{width:30px; height:30px; object-fit:contain; vertical-align:middle; margin-left:5px; image-rendering:pixelated;}
+  .login-loading-emoji{width:32px; height:32px; object-fit:contain; vertical-align:middle; margin-left:5px;}
   button:has(.login-loading-emoji){min-height:48px; height:48px; padding:0 14px;}
   .keeprow{display:flex; align-items:center; justify-content:center; gap:8px; font-size:13px; color:var(--muted); margin:0; font-weight:600; cursor:pointer;}
   .keeprow input{width:17px; height:17px; margin:0;}
@@ -169,7 +170,7 @@ function ASSET(p){ return ASSET_BASE + p; }
   /* ---- 빈 상태 ---- */
   .emptystate{width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:22px 10px; text-align:center;}
   .emptystate .es-icon{width:58px; height:58px; display:flex; align-items:center; justify-content:center;}
-  .emptystate .es-icon img{width:58px; height:58px; object-fit:contain; image-rendering:pixelated;}
+  .emptystate .es-icon img{width:48px; height:48px; object-fit:contain;}
   .emptystate .es-title{font-family:var(--font-display); font-size:18px; color:var(--ink);}
   .emptystate .es-sub{font-size:12px; color:var(--muted); line-height:1.5;}
 
@@ -221,7 +222,7 @@ function ASSET(p){ return ASSET_BASE + p; }
   .score-cheer, .score-sad{position:fixed; inset:0; z-index:300; display:flex; align-items:center; justify-content:center; pointer-events:none; opacity:0;}
   .score-cheer.show{animation:scoreCheerIn 900ms cubic-bezier(.2,.8,.2,1) forwards;}
   .score-sad.show{animation:scoreCheerIn 850ms cubic-bezier(.2,.8,.2,1) forwards;}
-  .score-cheer img, .score-sad img{width:200px; height:200px; object-fit:contain; image-rendering:pixelated; filter:drop-shadow(6px 6px 0 rgba(74,47,35,.18));}
+  .score-cheer img, .score-sad img{width:192px; height:192px; object-fit:contain; filter:drop-shadow(6px 6px 0 rgba(74,47,35,.18));}
   @keyframes scoreCheerIn{0%{opacity:0; transform:scale(.06);}70%{opacity:1; transform:scale(1.08);}100%{opacity:1; transform:scale(1);}}
   .confetti-piece{position:fixed; top:-12px; z-index:200; width:8px; height:8px; opacity:.95; animation:confetti-fall linear forwards; pointer-events:none;}
   @keyframes confetti-fall{0%{transform:translateY(0) rotate(0deg);}100%{transform:translateY(110vh) rotate(540deg);}}
@@ -254,7 +255,7 @@ function ASSET(p){ return ASSET_BASE + p; }
   .admrow{padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; border-bottom:1.5px solid #E1C9B5; cursor:pointer;}
   .admrow:last-child{border-bottom:none;}
   @media (hover:hover){ .admrow:hover{background:var(--cream) !important;} }
-  .mini-face{width:38px; height:38px; object-fit:contain; flex-shrink:0; image-rendering:pixelated;}
+  .mini-face{width:48px; height:48px; object-fit:contain; flex-shrink:0;}
   .toolrow{display:flex; gap:8px; flex-wrap:wrap;}
   .toolrow .btn, .toolrow button{width:auto; padding:9px 13px; font-size:16px; box-shadow:3px 3px 0 var(--ink);}
   .lecwrap{overflow-x:auto; border:2px solid var(--ink);}
@@ -278,6 +279,60 @@ function ASSET(p){ return ASSET_BASE + p; }
     .admin-grid{grid-template-columns:1fr;}
     .admin-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}
   }
+
+  /* ===================== 2026-10-14 확정 수정본: 배은혜체 · 가독성 · 정수 배율 도트 ===================== */
+  /* 장식 글꼴 크기 (시안 기준 150%) */
+  .pagetitle{font-size:36px; line-height:1.2; font-weight:900;}
+  .backbar .bb-title{font-size:32px; line-height:1.15;}
+  button, .btn{font-size:24px; font-weight:900; padding:11px 14px;}
+  .smallbtn, .toolrow .btn, .toolrow button, .pillbtn, .admtab, .admin-head .ah-tools button,
+  .assign-hero .ah-foot button, .history-result button, .mylec .go{font-size:19.5px;}
+  .chip, .badge{font-size:18px !important; padding:4px 9px !important; line-height:1.3;}  /* 원본 JS가 칩에 인라인 크기를 넣어도 시안 크기 유지 */
+  .eyebrow{font-size:18px; letter-spacing:.06em; color:#9A6C57;}
+  .score .sc-big b{font-family:var(--font-display); font-weight:900; font-size:75px; -webkit-text-stroke:.15px currentColor;}
+  .score .sc-big span, .score .sc-label{font-family:var(--font-display); font-weight:900; font-size:22px;}
+  .history-week{font-family:var(--font-display); font-weight:900; font-size:15px;}
+  .history-week small{font-size:12px;}
+  .history-result{font-family:var(--font-display); font-weight:900; font-size:19.5px;}
+  .history-result strong{font-family:var(--font-display); font-size:24px; font-weight:900; letter-spacing:.01em;}
+  .history-result .go{font-family:var(--font-body); font-weight:600; font-size:12px;}
+  .kpi strong, .donutwrap .dw-pct{font-family:var(--font-display); font-weight:900; font-size:33px; -webkit-text-stroke:.15px currentColor;}
+  .perfectBanner .pb-text{font-family:var(--font-display); font-weight:900; font-size:24px;}
+  .qnum{font-family:var(--font-display); font-weight:900; font-size:16.5px !important;}
+  /* 본문은 Noto Sans KR: 카드 제목·문항 칸·안내문 */
+  .sectitle{font-family:var(--font-body); font-size:16px; font-weight:800; letter-spacing:-.02em;}
+  .sectitle small{font-size:12px; font-weight:500;}
+  .help-strip b, .upload b, .lecitem .ttl, .emptystate .es-title{font-family:var(--font-body); font-weight:800; font-size:15px; letter-spacing:-.02em;}
+  .help-strip p{font-size:13.5px; line-height:1.65;}
+  .qcell, .anscell{font-family:var(--font-body); font-weight:800; font-size:13px;}
+  .qcell small, .anscell small{font-size:17px;}
+  .pagesub, .backbar .bb-sub{font-size:14px; line-height:1.6;}
+  .history-title{font-size:14px; line-height:1.5;}
+  .history-meta{font-size:12px; line-height:1.5;}
+  input[type=text], input[type=password], input[type=number], select, textarea{font-size:15px; line-height:1.55;}
+  label{font-size:13px;}
+  .lectbl, .lectbl th{font-size:13px;}
+  .admrow{font-size:13px;}
+  /* 도트 이미지: 512px·192px 원본을 정수 배율에 가까운 크기로 */
+  .avatar{width:64px; height:64px;}
+  .assign-hero img{width:128px; height:128px;}
+  .help-strip img{width:64px !important; height:64px !important;}
+  .missbox img{width:64px; height:64px;}
+  .score{grid-template-columns:minmax(0,1fr) 128px;}
+  .score img{width:128px; height:128px;}
+  .dami-say img{width:48px; height:48px;}
+  /* 로그인 */
+  #view-login .hero .mascot{width:192px; height:192px; left:8px; bottom:-10px;}
+  #view-login .bubble{width:235px; max-width:61%; aspect-ratio:5/3; right:10px; top:8px;}
+  /* 흰색 말풍선 본체(가로 8~92%, 세로 5.2%부터 71.1%) 기준 중앙 정렬 */
+  #view-login .bubble p{left:8%; right:8%; top:5.2%; bottom:auto; height:71.1%; padding:6px; font-family:'BaeEunHye',"Noto Sans KR","Malgun Gothic",sans-serif; font-size:24.5px; font-weight:400; -webkit-text-stroke:0; letter-spacing:0; line-height:1.02;}
+  #view-login .login-title-logo{display:block; width:250px; max-width:90%; height:auto; margin:7px auto 5px; object-fit:contain;}
+  #view-login label:not(.keeprow){font-family:var(--font-display); font-size:16.5px; font-weight:900; -webkit-text-stroke:.15px currentColor; letter-spacing:.02em;}
+  #view-login input[type=text], #view-login input[type=password]{font-family:var(--font-display); font-size:18px; font-weight:400; -webkit-text-stroke:0; letter-spacing:.01em;}
+  #view-login input::placeholder{font-family:var(--font-display); font-size:18px; font-weight:400; line-height:1.4; color:#80695D; opacity:1;}
+  #view-login button{font-size:26.4px; -webkit-text-stroke:.25px currentColor; text-rendering:geometricPrecision;}
+  #view-login .keeprow{font-size:14px;}
+  #loginSub{display:none !important;}
   @media (max-width:480px){ .admrow svg[width="90"]{display:none;} .admrow{padding:10px 12px;} }
   @media (prefers-reduced-motion:reduce){ .spark, .chart-line, .chart-point{animation:none; stroke-dashoffset:0;} }
 </style>
@@ -292,10 +347,9 @@ function ASSET(p){ return ASSET_BASE + p; }
         <img class="pixel mascot" data-asset="pixel-motion/dami-hello-motion.webp" data-fallback="pixel-face-icons/dami-face-default.png" alt="인사하는 정다미">
         <div class="bubble"><img class="pixel" data-asset="pixel-speech-bubbles/640/dami-bubble-dialogue.png" alt=""><p>안녕!<br>이번 주 과제도<br>같이 시작해 볼까?</p></div>
       </div>
-      <div style="text-align:center; margin:20px 0 22px;">
-        <div class="eyebrow">DAMI STUDY TOOL</div>
-        <h1 class="apptitle">과제 제출기</h1>
-        <div style="font-size:13px; color:var(--muted);" id="loginSub">과제 제출을 하고 매주 피드백을 받아보세요.</div>
+      <div style="text-align:center; margin:18px 0 22px;">
+        <h1 style="margin:0;"><img class="pixel login-title-logo" data-asset="pixel-title/assignment-title-pixel-500.png" alt="과제 제출기"></h1>
+        <div id="loginSub">과제 제출을 하고 매주 피드백을 받아보세요.</div>
       </div>
 
       <div style="width:100%; display:flex; flex-direction:column; gap:14px;">
@@ -678,7 +732,7 @@ function ASSET(p){ return ASSET_BASE + p; }
           <div id="lecSaveMsg" style="font-size:12.5px; color:var(--muted); min-height:18px;"></div>
         </div>
         <div class="help-strip">
-          <img class="pixel" data-asset="pixel-motion/dami-read-rocking-chair-motion.webp" data-fallback="pixel-motion/dami-read-rocking-chair-motion.gif" alt="흔들의자에서 책을 읽는 정다미" style="width:96px; height:96px;">
+          <img class="pixel" data-asset="pixel-motion/dami-read-rocking-chair-motion.webp" data-fallback="pixel-motion/dami-read-rocking-chair-motion.gif" alt="흔들의자에서 책을 읽는 정다미" >
           <div><b>강의 자료는 내가 챙길게</b><p>대상과 공개 여부를 바꿔도 학생 수강 기록은 그대로 남아요.</p></div>
         </div>
       </div>
@@ -720,7 +774,7 @@ function ASSET(p){ return ASSET_BASE + p; }
       </div>
       <div class="admin-col">
         <div class="help-strip">
-          <img class="pixel" data-asset="pixel-motion/salpimi-inspect-motion.webp" data-fallback="pixel-motion/salpimi-inspect-motion.gif" alt="돋보기로 살펴보는 살피미" style="width:96px; height:96px;">
+          <img class="pixel" data-asset="pixel-motion/salpimi-inspect-motion.webp" data-fallback="pixel-motion/salpimi-inspect-motion.gif" alt="돋보기로 살펴보는 살피미" >
           <div><b>살피미가 먼저 확인해요</b><p>붙여넣거나 올린 정답표는 반영하기 전에 여기 미리보기로 검사 결과가 나와요.</p></div>
         </div>
         <div id="importPreview" style="display:flex; flex-direction:column; gap:12px;"></div>
@@ -1698,7 +1752,7 @@ function renderAdmin(){
       </div>
       <div style="display:flex; align-items:center; gap:18px;">
         <svg width="90" height="28" viewBox="0 0 100 30"><polyline points="${sparkPoints_(s.trend)}" fill="none" stroke="#5F9A70" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"/></svg>
-        <div style="width:48px; text-align:right; font-size:15px; font-weight:800; color:${latestColor};">${latest!=null ? latest+'점' : '-'}</div>
+        <div style="width:48px; text-align:right; font-family:var(--font-display); font-size:21px; font-weight:900; color:${latestColor};">${latest!=null ? latest+'점' : '-'}</div>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 5L16 12L9 19" stroke="#C99B78" stroke-width="2.6" stroke-linecap="square"/></svg>
       </div>
     </div>`;
@@ -2286,7 +2340,7 @@ function showResult(res){
     wrongEl.innerHTML = wrongs.map(w=>`
       <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:8px;">
         <div style="display:flex; align-items:center; gap:8px;">
-          <span style="width:34px; height:34px; border:2px solid var(--ink); background:#FFE6DF; color:var(--bad); font-family:var(--font-display); font-size:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">${w.q}</span>
+          <span style="width:34px; height:34px; border:2px solid var(--ink); background:#FFE6DF; color:var(--bad); font-family:var(--font-display); font-weight:900; font-size:16.5px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">${w.q}</span>
           <span style="font-size:13px; color:var(--muted);">내 답 <b style="color:var(--bad);">${w.given}</b> · 정답 <b style="color:var(--accent-dark);">${w.correct}</b></span>
         </div>
         <div style="font-size:13.5px; line-height:1.6;">${w.explain || ''}</div>
