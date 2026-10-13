@@ -1,0 +1,2603 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>과제 제출기</title>
+<script>
+/* ===================== 정다미 자산 주소 =====================
+   이미지·글꼴은 모두 이 한 줄의 주소 아래에서 불러온다.
+   (GitHub 공개 저장소 + jsDelivr. 저장소/태그가 바뀌면 이 줄만 고치면 된다.) */
+var ASSET_BASE = 'https://cdn.jsdelivr.net/gh/woongda0303/dami-assets@4fe67cf8f66c276e120abdfe0a7240dbbaa6eb63/';
+function ASSET(p){ return ASSET_BASE + p; }
+(function(){
+  var st = document.createElement('style');
+  st.textContent = "@font-face{font-family:'GoGoDing';src:url('" + ASSET('fonts/gogoding-ksx.woff2') + "') format('woff2');font-display:swap;font-weight:400;font-style:normal;}";
+  document.head.appendChild(st);
+})();
+</script>
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap");
+  :root{
+    /* 정다미 도트 팔레트 */
+    --paper:#FFFCF7; --cream:#FBF3E9; --beige:#F5E9DC; --caramel:#C99B78; --coral:#DE7466; --coral-2:#F6C6BE;
+    --green-main:#5F9A70; --yellow:#F2C14E; --line:#DFC4AD; --soft-shadow:#DEC5AF;
+    --font-body:"Noto Sans KR","Noto Sans CJK KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    --font-display:"GoGoDing","Noto Sans KR","Malgun Gothic",sans-serif;
+    /* 원본 코드(동적 HTML)가 쓰는 변수 이름은 그대로 두고 값만 새 팔레트로 바꾼다 */
+    --bg:#FFFCF7; --card:#FFFFFF; --border:#E6D3C2; --ink:#4A2F23; --muted:#906C59;
+    --accent:#DE7466; --accent-dark:#8E4A3E; --accent-tint:#FFF0EB;
+    --good:#4F8A60; --good-tint:#E9F4E9; --bad:#BD594B; --bad-tint:#FFE7E1;
+    --warn:#8B6420; --warn-tint:#FFF3D2;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0; color:var(--ink); font-family:var(--font-body); letter-spacing:-.02em;
+    background-color:#F0E3D4;
+    background-image:linear-gradient(rgba(201,155,120,.13) 1px,transparent 1px),linear-gradient(90deg,rgba(201,155,120,.13) 1px,transparent 1px);
+    background-size:16px 16px;
+  }
+  a{text-decoration:none; color:inherit;}
+  /* 도트 화면: 둥근 모서리는 쓰지 않는다 (원형 도넛·스피너는 예외) */
+  .screen *:not(.spinner):not(.round){border-radius:0 !important;}
+  img.pixel, .pixel img{image-rendering:pixelated; image-rendering:crisp-edges;}
+  .display, h1, h2, .pagetitle, .sectitle, button, .btn, .chip, .badge, .admtab, .eyebrow{font-family:var(--font-display); letter-spacing:.01em;}
+
+  /* ---- 화면 틀 ---- */
+  .screen{display:none; width:100%; max-width:430px; margin:0 auto; min-height:100vh; flex-direction:column; background:var(--paper); border-left:3px solid var(--ink); border-right:3px solid var(--ink); box-shadow:8px 0 0 var(--caramel);}
+  .screen.active{display:flex;}
+  .scroll{flex-grow:1; overflow-y:auto; padding:22px 18px 26px; display:flex; flex-direction:column; gap:16px;}
+  .screen.wide{max-width:1120px;}
+  @media (max-width:440px){ .screen{border-left:0; border-right:0; box-shadow:none;} }
+
+  /* ---- 카드·글자 ---- */
+  .card{background:var(--card); border:2px solid var(--ink); padding:16px; box-shadow:4px 4px 0 var(--soft-shadow); position:relative;}
+  .card.soft{background:var(--cream);} .card.coral{background:#FFF0EB;} .card.green{background:var(--good-tint);} .card.yellow{background:#FFF8DC;}
+  .eyebrow{font-size:12.5px; letter-spacing:.1em; color:#A2745F; text-transform:uppercase;}
+  .pagetitle{font-size:26px; line-height:1.25; margin:2px 0 0; font-weight:400;}
+  .pagesub{font-size:12.5px; color:var(--muted); margin-top:3px;}
+  .sectitle{font-size:19px; font-weight:400;}
+  .sectitle small{font-family:var(--font-body); font-size:11.5px; vertical-align:2px; color:var(--muted); letter-spacing:-.02em;}
+  .muted{color:var(--muted);}
+  .row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .err{color:var(--bad); font-size:13px; min-height:18px;}
+  label{display:block; font-size:12.5px; font-weight:800; color:var(--ink); margin-bottom:6px;}
+
+  /* ---- 입력 ---- */
+  input[type=text], input[type=password], input[type=number], select, textarea{
+    width:100%; padding:12px 13px; border:2px solid var(--ink) !important; background:#fff;
+    font-family:var(--font-body); font-size:15px; color:var(--ink); outline:none; box-shadow:inset 3px 3px 0 var(--cream);
+  }
+  input:focus, select:focus, textarea:focus{box-shadow:inset 3px 3px 0 var(--cream), 0 0 0 3px var(--coral-2);}
+  input[type=file]{font-family:var(--font-body); font-size:13px; width:100%; padding:16px; border:3px dashed var(--caramel); background:var(--cream);}
+  input[type=checkbox]{accent-color:var(--coral);}
+
+  /* ---- 버튼 ---- */
+  button, .btn{
+    display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+    padding:13px 14px; border:2px solid var(--ink); background:var(--coral); color:#FFFDF8;
+    font-size:18px; font-weight:400; cursor:pointer; box-shadow:4px 4px 0 var(--ink); transition:transform .06s, box-shadow .06s;
+  }
+  button:active:not(:disabled), .btn:active{transform:translate(2px,2px); box-shadow:2px 2px 0 var(--ink);}
+  @media (hover:hover){ button:hover:not(:disabled), .btn:hover{transform:translate(1px,1px); box-shadow:3px 3px 0 var(--ink);} }
+  .btn.ghost{background:var(--paper); color:var(--ink);}
+  .btn.dark{background:var(--ink); color:var(--paper); box-shadow:4px 4px 0 var(--caramel);}
+  .btn.green{background:var(--green-main);}
+  button:disabled, .btn:disabled{opacity:.55; cursor:not-allowed; box-shadow:2px 2px 0 var(--ink); transform:none;}
+  .smallbtn{width:auto; padding:7px 11px; font-size:15px; box-shadow:3px 3px 0 var(--ink);}
+  .chip{display:inline-flex; align-items:center; gap:5px; font-size:14px; padding:4px 8px; border:1.5px solid var(--ink); background:var(--beige); box-shadow:2px 2px 0 #D7B89F; font-weight:400;}
+  .spinner{display:inline-block; width:15px; height:15px; border:2px solid #fff; border-top-color:transparent; border-radius:50% !important; animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ---- 고정 버튼 (새로고침·로그아웃) ---- */
+  .homebtn{
+    position:fixed; top:14px; left:max(14px, calc(50% - 201px)); z-index:50;
+    width:38px; height:38px; background:var(--paper); border:2px solid var(--ink);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:3px 3px 0 var(--caramel);
+  }
+  .topright{position:fixed; top:14px; right:max(14px, calc(50% - 201px)); z-index:50; display:flex; gap:8px;}
+  .pillbtn{width:auto; height:38px; padding:0 12px; background:var(--paper); border:2px solid var(--ink); color:var(--ink); font-size:15px; box-shadow:3px 3px 0 var(--caramel);}
+  .spin svg{animation:spin .8s linear infinite;}
+  .backbar{display:flex; align-items:center; gap:12px; padding:18px 18px 6px; flex-shrink:0;}
+  .backbar .bb-title{font-family:var(--font-display); font-size:23px; line-height:1.2;}
+  .backbar .bb-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+  .iconbtn{width:38px; height:38px; flex-shrink:0; background:var(--paper); border:2px solid var(--ink); display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:3px 3px 0 var(--caramel);}
+
+  /* ---- 정다미 ---- */
+  .mascot{object-fit:contain; display:block;}
+  .avatar{width:58px; height:58px; flex-shrink:0; background:var(--beige); border:2px solid var(--ink); box-shadow:3px 3px 0 var(--caramel); display:flex; align-items:center; justify-content:center; overflow:hidden; font-family:var(--font-display); font-size:26px; color:var(--accent-dark);}
+  .avatar img{width:52px !important; height:52px !important; object-fit:contain !important; image-rendering:pixelated;}
+  .help-strip{display:flex; gap:10px; align-items:center; background:#FFF0E8; border:2px solid var(--ink); padding:10px;}
+  .help-strip img{width:84px; height:84px; object-fit:contain; flex:0 0 auto;}
+  .help-strip b{font-family:var(--font-display); font-weight:400; font-size:18px;}
+  .help-strip p{margin:4px 0 0; font-size:12.5px; color:var(--muted); line-height:1.55;}
+
+  /* ---- 로그인 ---- */
+  .hero{height:205px; background:var(--beige); border:2px solid var(--ink); position:relative; overflow:hidden; background-image:radial-gradient(#D8B99F 1.2px,transparent 1.2px); background-size:12px 12px; box-shadow:4px 4px 0 var(--caramel);}
+  .hero .mascot{position:absolute; left:6px; bottom:-4px; width:168px; height:168px;}
+  .bubble{position:absolute; right:8px; top:10px; width:236px; max-width:64%; aspect-ratio:640/384;}
+  .bubble img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain;}
+  /* 꼬리를 뺀 흰색 본체(이미지 기준 가로 7.5~96.1%, 세로 7.8~74%) 안에서 가운데 정렬 */
+  .bubble p{position:absolute; left:7.5%; right:3.9%; top:7.8%; bottom:26%; margin:0; padding:6px; display:flex; align-items:center; justify-content:center; text-align:center; font-family:var(--font-display); font-size:18px; line-height:1.3; font-weight:900; color:var(--ink);}
+  .spark{position:absolute; width:6px; height:6px; background:var(--yellow); box-shadow:6px 0 var(--yellow),0 6px var(--yellow); animation:blink 1.1s steps(2,end) infinite;}
+  .spark.a{right:22px; bottom:18px;} .spark.b{left:16px; top:22px; animation-delay:.5s;}
+  @keyframes blink{50%{opacity:.25; transform:translateY(-2px);}}
+  .apptitle{font-family:var(--font-display); font-size:36px; margin:4px 0; font-weight:400;}
+  .login-loading-emoji{width:30px; height:30px; object-fit:contain; vertical-align:middle; margin-left:5px; image-rendering:pixelated;}
+  button:has(.login-loading-emoji){min-height:48px; height:48px; padding:0 14px;}
+  .keeprow{display:flex; align-items:center; justify-content:center; gap:8px; font-size:13px; color:var(--muted); margin:0; font-weight:600; cursor:pointer;}
+  .keeprow input{width:17px; height:17px; margin:0;}
+
+  /* ---- 학생 홈: 현재 과제 ---- */
+  .assign-hero{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px 10px; align-items:center;}
+  .assign-hero .ah-title{font-family:var(--font-display); font-size:24px; line-height:1.25; margin:8px 0 3px;}
+  .assign-hero .ah-meta{font-size:12.5px; color:var(--muted);}
+  .assign-hero img{width:104px; height:104px; object-fit:contain;}
+  .assign-hero .ah-foot{grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:4px;}
+  .assign-hero .ah-foot button{width:auto; padding:10px 14px; font-size:17px;}
+
+  /* ---- 과제 내역 (요일 체크 자리) ---- */
+  .history-list{border-top:2px solid var(--ink); margin-top:4px;}
+  .history-row{display:grid; grid-template-columns:44px minmax(0,1fr) auto; gap:10px; align-items:center; padding:10px 0; border-bottom:2px dashed var(--line);}
+  .history-row:last-child{border-bottom:0; padding-bottom:2px;}
+  .history-row.clickable{cursor:pointer;}
+  .history-week{width:44px; height:44px; border:2px solid var(--ink); background:var(--cream); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-family:var(--font-display); font-size:17px; line-height:1;}
+  .history-week small{font-size:11.5px; margin-top:2px;}
+  .history-row.current .history-week{background:#FFF0DD; box-shadow:2px 2px 0 var(--caramel);}
+  .history-title{font-size:13.5px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .history-meta{margin-top:3px; font-size:11.5px; color:var(--muted);}
+  .history-result{min-width:62px; text-align:right; font-family:var(--font-display); font-size:15px; line-height:1.25;}
+  .history-result strong{display:block; font-family:var(--font-body); font-size:17px; font-weight:800; letter-spacing:-.02em;}
+  .history-result .go{font-size:13.5px; color:var(--muted);}
+  .history-result button{width:auto; padding:6px 10px; font-size:15px; box-shadow:2px 2px 0 var(--ink); background:var(--paper); color:var(--bad); border-color:var(--bad);}
+
+  /* ---- 내 강의 ---- */
+  .mylec{display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:2px dashed var(--line); color:inherit;}
+  .mylec:last-child{border-bottom:none;}
+  .mylec .ic{width:38px; height:38px; border:2px solid var(--ink); background:var(--beige); color:var(--accent-dark); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-family:var(--font-display); font-size:18px; box-shadow:2px 2px 0 var(--caramel);}
+  .mylec .tt{font-size:14px; font-weight:800;}
+  .mylec .mm{font-size:11.5px; color:var(--muted); margin-top:2px;}
+  .mylec .go{margin-left:auto; flex-shrink:0; font-family:var(--font-display); font-size:15px; padding:6px 10px; border:2px solid var(--ink); background:var(--coral); color:#fff; box-shadow:2px 2px 0 var(--ink);}
+  .mylec .go.done{background:var(--good-tint); color:var(--good);}
+  .mylec .go.part{background:#FFF0EB; color:var(--accent-dark);}
+  .lecbar{height:10px; border:2px solid var(--ink); background:#fff; margin-top:6px; overflow:hidden; max-width:180px;}
+  .lecbar i{display:block; height:100%; background:var(--green-main);}
+  .foldbtn{width:auto;}
+  .lecmini{display:flex; flex-wrap:wrap; gap:6px;}
+
+  /* ---- 빈 상태 ---- */
+  .emptystate{width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:22px 10px; text-align:center;}
+  .emptystate .es-icon{width:58px; height:58px; display:flex; align-items:center; justify-content:center;}
+  .emptystate .es-icon img{width:58px; height:58px; object-fit:contain; image-rendering:pixelated;}
+  .emptystate .es-title{font-family:var(--font-display); font-size:18px; color:var(--ink);}
+  .emptystate .es-sub{font-size:12px; color:var(--muted); line-height:1.5;}
+
+  /* ---- 배지 ---- */
+  .badgerow{display:flex; gap:8px; flex-wrap:wrap;}
+  .badge{display:flex; align-items:center; gap:6px; padding:6px 10px; font-size:15px; border:1.5px solid var(--ink); box-shadow:2px 2px 0 #D7B89F;}
+  .badge.streak{background:#FFF0CD; color:#8B6420;}
+  .badge.perfect{background:#E4F3E5; color:#426F50;}
+
+  /* ---- 그래프 ---- */
+  .chartbox svg{display:block; overflow:visible;}
+  .chart-line{stroke-dasharray:1; stroke-dashoffset:1; animation:chartDraw 900ms ease-out forwards;}
+  .chart-point{transform-box:fill-box; transform-origin:center; animation:chartPointIn 360ms ease-out both;}
+  @keyframes chartDraw{to{stroke-dashoffset:0;}}
+  @keyframes chartPointIn{from{opacity:0; transform:scale(.35);}to{opacity:1; transform:scale(1);}}
+
+  /* ---- 촬영 ---- */
+  .upload{border:3px dashed var(--caramel); background:var(--cream); padding:24px 18px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; position:relative;}
+  .upload::before,.upload::after{content:""; position:absolute; width:24px; height:24px; border-color:var(--ink);}
+  .upload::before{left:8px; top:8px; border-left:3px solid; border-top:3px solid;}
+  .upload::after{right:8px; bottom:8px; border-right:3px solid; border-bottom:3px solid;}
+  .upload b{font-family:var(--font-display); font-weight:400; font-size:19px;}
+
+  /* ---- 인식 확인 ---- */
+  .qgrid{display:grid; grid-template-columns:repeat(5,1fr); gap:7px;}
+  .qcell{aspect-ratio:1; border:2px solid var(--ink); background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:var(--font-display); font-size:15px; cursor:pointer; box-shadow:2px 2px 0 var(--soft-shadow);}
+  .qcell small{font-family:var(--font-body); font-weight:800; color:var(--ink); font-size:15px; margin-top:2px;}
+  .qcell.unsure{background:#FFF0C4; box-shadow:2px 2px 0 #D3A733;}
+  .qcanvas{border:2px solid var(--ink); width:100%; box-shadow:5px 5px 0 #D9BCA5; background:#fff;}
+
+  /* ---- 채점 결과 ---- */
+  .score{background:var(--coral); color:#fff; border:3px solid var(--ink); box-shadow:6px 6px 0 var(--ink); padding:16px 14px 16px 18px; display:grid; grid-template-columns:minmax(0,1fr) 116px; align-items:center; gap:6px;}
+  .score .sc-label{font-family:var(--font-display); font-size:16px;}
+  .score .sc-big{display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; margin:2px 0;}
+  .score .sc-big b{font-family:var(--font-display); font-size:54px; line-height:1; font-weight:400;}
+  .score .sc-big span{font-family:var(--font-display); font-size:19px;}
+  .score .sc-sub{font-size:13px; font-weight:700;}
+  .score img{width:116px; height:116px; object-fit:contain;}
+  .ansgrid{display:grid; grid-template-columns:repeat(5, 1fr); gap:7px;}
+  .anscell{min-height:50px; border:2px solid var(--ink); background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-family:var(--font-display); font-size:15px; padding:4px 2px;}
+  .anscell small{font-family:var(--font-body); font-weight:800; font-size:12px; line-height:1.2;}
+  .anscell.correct{background:#DFF0E2; color:#3F754D;}
+  .anscell.wrong{background:#FFE2DC; color:#A74236;}
+  .perfectBanner{display:flex; align-items:center; justify-content:center; gap:8px; background:var(--yellow); border:2px solid var(--ink); box-shadow:4px 4px 0 var(--ink); padding:12px;}
+  .perfectBanner .pb-emoji{font-size:22px;}
+  .perfectBanner .pb-text{font-family:var(--font-display); font-size:18px; color:var(--ink);}
+  .dami-say{display:flex; gap:10px; align-items:flex-start;}
+  .dami-say img{width:52px; height:52px; object-fit:contain; flex-shrink:0;}
+  .score-cheer, .score-sad{position:fixed; inset:0; z-index:300; display:flex; align-items:center; justify-content:center; pointer-events:none; opacity:0;}
+  .score-cheer.show{animation:scoreCheerIn 900ms cubic-bezier(.2,.8,.2,1) forwards;}
+  .score-sad.show{animation:scoreCheerIn 850ms cubic-bezier(.2,.8,.2,1) forwards;}
+  .score-cheer img, .score-sad img{width:200px; height:200px; object-fit:contain; image-rendering:pixelated; filter:drop-shadow(6px 6px 0 rgba(74,47,35,.18));}
+  @keyframes scoreCheerIn{0%{opacity:0; transform:scale(.06);}70%{opacity:1; transform:scale(1.08);}100%{opacity:1; transform:scale(1);}}
+  .confetti-piece{position:fixed; top:-12px; z-index:200; width:8px; height:8px; opacity:.95; animation:confetti-fall linear forwards; pointer-events:none;}
+  @keyframes confetti-fall{0%{transform:translateY(0) rotate(0deg);}100%{transform:translateY(110vh) rotate(540deg);}}
+
+  /* ---- OMR 서식 ---- */
+  #templateCanvas{width:100%; border:2px solid var(--ink); background:#fff; box-shadow:5px 5px 0 #D9BCA5;}
+  @media print{ body *{visibility:hidden;} #templateCanvas, #templateCanvas *{visibility:visible;} #templateCanvas{position:absolute; left:0; top:0; width:100%; border:0; box-shadow:none;} }
+
+  /* ---- 관리자 ---- */
+  .admin-head{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  .admin-head .ah-tools{display:flex; gap:8px;}
+  .admin-head .ah-tools button{width:auto; padding:8px 12px; font-size:16px; box-shadow:3px 3px 0 var(--caramel);}
+  #adminTabs{display:flex; gap:8px; flex-wrap:wrap;}
+  .admtab{width:auto; padding:8px 13px; font-size:16px; border:2px solid var(--ink); background:var(--paper); color:var(--ink); display:inline-flex; align-items:center; gap:6px; box-shadow:3px 3px 0 var(--caramel);}
+  .admtab.active{background:var(--ink); color:var(--paper); box-shadow:3px 3px 0 var(--caramel);}
+  .admbadge{min-width:18px; height:18px; padding:0 5px; background:var(--bad-tint); color:var(--bad); border:1.5px solid var(--bad); font-family:var(--font-body); font-size:11px; font-weight:800; display:inline-flex; align-items:center; justify-content:center;}
+  .admbadge.active{background:var(--coral); color:#fff; border-color:#fff;}
+  .admin-kpis{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px;}
+  .kpi{border:2px solid var(--ink); background:#fff; padding:11px 12px; box-shadow:3px 3px 0 #D9BCA5;}
+  .kpi small{font-size:11px; color:var(--muted); font-weight:700;}
+  .kpi strong{display:block; font-size:24px; font-weight:800; margin-top:4px; letter-spacing:-.01em;}
+  .admin-grid{display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr); gap:16px; align-items:start;}
+  .admin-col{display:flex; flex-direction:column; gap:16px; min-width:0;}
+  .donutwrap{display:flex; align-items:center; gap:14px;}
+  .donutwrap .dw-label{font-size:12.5px; color:var(--muted); line-height:1.5;}
+  .donutwrap .dw-pct{font-size:24px; font-weight:800; color:var(--ink);}
+  .missbox{display:flex; align-items:center; gap:12px; background:#FFF0EB; border:2px solid var(--ink); box-shadow:4px 4px 0 var(--soft-shadow); padding:12px 14px;}
+  .missbox img{width:76px; height:76px; object-fit:contain; flex-shrink:0;}
+  #adminStudentList{background:var(--card); border:2px solid var(--ink); box-shadow:4px 4px 0 var(--soft-shadow); overflow:hidden;}
+  .admrow{padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; border-bottom:1.5px solid #E1C9B5; cursor:pointer;}
+  .admrow:last-child{border-bottom:none;}
+  @media (hover:hover){ .admrow:hover{background:var(--cream) !important;} }
+  .mini-face{width:38px; height:38px; object-fit:contain; flex-shrink:0; image-rendering:pixelated;}
+  .toolrow{display:flex; gap:8px; flex-wrap:wrap;}
+  .toolrow .btn, .toolrow button{width:auto; padding:9px 13px; font-size:16px; box-shadow:3px 3px 0 var(--ink);}
+  .lecwrap{overflow-x:auto; border:2px solid var(--ink);}
+  .lectbl{border-collapse:collapse; width:100%; font-size:12.5px; min-width:360px;}
+  .lectbl th,.lectbl td{border-bottom:1.5px solid #E1C9B5; padding:8px 10px; text-align:center; white-space:nowrap;}
+  .lectbl th{background:var(--ink); color:var(--paper); font-weight:700; font-size:12px;}
+  .lectbl td.nm, .lectbl th.nm{text-align:left; position:sticky; left:0; background:#fff;}
+  .lectbl th.nm{background:var(--ink);}
+  .lectbl tr:last-child td{border-bottom:none;}
+  .lecst{display:inline-block; min-width:52px; padding:3px 7px; border:1.5px solid currentColor; font-weight:800; font-size:11.5px;}
+  .lecst.done{background:var(--good-tint); color:var(--good);}
+  .lecst.partial{background:var(--warn-tint); color:var(--warn);}
+  .lecst.none{background:var(--bad-tint); color:var(--bad);}
+  .lecst.na{background:transparent; color:#C9B4A3; min-width:0; border:0;}
+  .lecsum{display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; font-size:12.5px; color:var(--muted);}
+  .lecitem{border:2px solid var(--ink); background:#fff; box-shadow:4px 4px 0 var(--soft-shadow); padding:14px; display:flex; flex-direction:column; gap:8px;}
+  .lecitem .ttl{font-family:var(--font-display); font-size:19px;}
+  textarea.lecjson{min-height:130px; font-size:12px; font-family:ui-monospace,Menlo,Consolas,monospace;}
+  #view-admin-subj table th{background:var(--cream); border-bottom:2px solid var(--ink);}
+  @media (max-width:820px){
+    .admin-grid{grid-template-columns:1fr;}
+    .admin-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}
+  }
+  @media (max-width:480px){ .admrow svg[width="90"]{display:none;} .admrow{padding:10px 12px;} }
+  @media (prefers-reduced-motion:reduce){ .spark, .chart-line, .chart-point{animation:none; stroke-dashoffset:0;} }
+</style>
+</head>
+<body>
+
+<!-- ============ 로그인 ============ -->
+<div class="screen active" id="view-login">
+  <div class="scroll" style="justify-content:center; gap:0;">
+    <div style="width:100%; max-width:350px; margin:0 auto;">
+      <div class="hero"><span class="spark a"></span><span class="spark b"></span>
+        <img class="pixel mascot" data-asset="pixel-motion/dami-hello-motion.webp" data-fallback="pixel-face-icons/dami-face-default.png" alt="인사하는 정다미">
+        <div class="bubble"><img class="pixel" data-asset="pixel-speech-bubbles/640/dami-bubble-dialogue.png" alt=""><p>안녕!<br>이번 주 과제도<br>같이 시작해 볼까?</p></div>
+      </div>
+      <div style="text-align:center; margin:20px 0 22px;">
+        <div class="eyebrow">DAMI STUDY TOOL</div>
+        <h1 class="apptitle">과제 제출기</h1>
+        <div style="font-size:13px; color:var(--muted);" id="loginSub">과제 제출을 하고 매주 피드백을 받아보세요.</div>
+      </div>
+
+      <div style="width:100%; display:flex; flex-direction:column; gap:14px;">
+        <div>
+          <label for="loginName">이름</label>
+          <input id="loginName" type="text" placeholder="예: 정다운" autocomplete="username">
+        </div>
+        <div>
+          <label for="loginPw">비밀번호</label>
+          <input id="loginPw" type="password" placeholder="선생님이 알려주신 비밀번호" autocomplete="current-password">
+        </div>
+        <label class="keeprow"><input type="checkbox" id="loginKeep" checked> 로그인 유지 (이 기기에서 30일)</label>
+        <div class="err" id="loginErr"></div>
+        <button id="loginBtnStudent" onclick="doLogin('student')">로그인하기</button>
+        <button id="loginBtnParent" class="btn ghost" onclick="doLogin('parent')">학부모로 로그인하기</button>
+      </div>
+
+      <div style="margin-top:24px; font-size:12.5px; color:var(--muted); text-align:center; line-height:1.6;">
+        비밀번호를 모르신다면<br>담당 선생님께 문의해 주세요.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 학생 홈 ============ -->
+<div class="screen" id="view-home">
+  <div class="homebtn" onclick="refreshScreen(this)" aria-label="새로고침" title="새로고침">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 11a8 8 0 1 0-2.3 5.7" stroke="#4A2F23" stroke-width="2.4" stroke-linecap="square"/><path d="M20 4v7h-7" stroke="#4A2F23" stroke-width="2.4" stroke-linecap="square"/></svg>
+  </div>
+  <div class="topright"><button class="pillbtn" onclick="doLogout()">로그아웃</button></div>
+  <div class="scroll" style="padding-top:66px;">
+    <div class="row">
+      <div style="min-width:0;">
+        <div class="eyebrow" id="homeEyebrow">MY HOMEWORK</div>
+        <div class="pagetitle" id="homeGreeting">안녕!</div>
+        <div class="pagesub">스스로 부족한 점을 확인해 보세요.</div>
+      </div>
+      <div class="avatar" id="homeAvatar">?</div>
+    </div>
+
+    <div class="card coral" id="assignmentCard" style="display:flex; flex-direction:column; gap:12px;"></div>
+
+    <div class="badgerow" id="homeBadgeRow" style="display:none;"></div>
+
+    <div id="missedWrap" style="display:none; flex-direction:column; gap:10px;">
+      <span class="sectitle" style="color:var(--bad);">미제출 과제 <small>(지난 과제도 여기서 바로 제출할 수 있어요)</small></span>
+      <div id="missedList" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+
+    <!-- 시안의 요일 체크 자리 → 과제 내역 -->
+    <div class="card" id="homeAssignHistCard" style="display:none; flex-direction:column; gap:6px;">
+      <div class="row"><span class="sectitle">과제 내역</span><span id="homeAssignHistMeta"></span></div>
+      <div id="homeAssignHistList" class="history-list"></div>
+    </div>
+
+    <div class="card" id="homeLectureCard" style="display:none; flex-direction:column; gap:2px;">
+      <div class="row" style="align-items:baseline;"><span class="sectitle">내 강의</span><span style="font-size:12px; color:var(--muted);" id="homeLectureMeta"></span></div>
+      <div id="homeLectureList"></div>
+    </div>
+
+    <div class="card" id="homeClassLogCard" style="display:none; flex-direction:column; gap:6px;">
+      <span class="sectitle">이번 주 수업 내역</span>
+      <div id="homeClassLogList" style="display:flex; flex-direction:column; gap:2px;"></div>
+    </div>
+
+    <div class="card chartbox" style="display:flex; flex-direction:column; gap:10px;">
+      <div class="row" style="align-items:baseline;">
+        <span class="sectitle">누적 점수</span>
+        <span class="chip">최근 6주</span>
+      </div>
+      <svg id="homeChart" width="100%" height="146" viewBox="0 0 326 146"></svg>
+      <div id="homeChartLabels" style="display:flex; justify-content:space-between; padding:0 8px 0 26px;"></div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <span class="sectitle">최근 제출 내역 <small>(눌러서 피드백 보기)</small></span>
+      <div id="homeHistory" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 답안지 촬영 ============ -->
+<div class="screen" id="view-submit">
+  <div class="backbar">
+    <div class="iconbtn" onclick="goBack()" aria-label="뒤로가기">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#4A2F23" stroke-width="2.6" stroke-linecap="square"/></svg>
+    </div>
+    <div style="min-width:0;">
+      <div class="bb-title">답안지 촬영</div>
+      <div class="bb-sub" id="submitSub">-</div>
+    </div>
+  </div>
+  <div class="scroll" style="gap:16px;">
+    <div class="help-strip">
+      <img class="pixel" data-asset="pixel-motion/dami-teach-motion.webp" data-fallback="pixel-pet/dami-teach.png" alt="설명하는 정다미">
+      <div><b>네 모서리를 모두 보여 줘!</b><p>그림자가 생기지 않게 밝은 곳에서 수직으로 찍으면 더 정확해.</p></div>
+    </div>
+    <div class="upload">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M4 8h2.2l1.1-2h9.4l1.1 2H20v12H4V8Z" stroke="#4A2F23" stroke-width="2" stroke-linejoin="miter"/><rect x="8.5" y="10" width="7" height="7" stroke="#4A2F23" stroke-width="2"/></svg>
+      <b>OMR의 모서리 점이 잘리지 않게 촬영하세요!</b>
+      <div style="font-size:12.5px; color:var(--muted); line-height:1.6;">굵은 테두리와 네 모서리 점이<br>사진 안에 모두 들어오게 맞춰 주세요.</div>
+    </div>
+
+    <button id="shootBtn" onclick="document.getElementById('fileInputCamera').click()">촬영하기</button>
+    <button class="btn ghost" onclick="document.getElementById('fileInputGallery').click()">갤러리에서 사진 선택</button>
+    <input type="file" id="fileInputCamera" accept="image/*" capture="environment" style="display:none">
+    <input type="file" id="fileInputGallery" accept="image/*" style="display:none">
+    <canvas id="snapCanvas" style="display:none;"></canvas>
+  </div>
+</div>
+
+<!-- ============ 인식 결과 확인 ============ -->
+<div class="screen" id="view-confirm">
+  <div class="backbar">
+    <div class="iconbtn" onclick="goBack()" aria-label="뒤로가기">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#4A2F23" stroke-width="2.6" stroke-linecap="square"/></svg>
+    </div>
+    <div style="flex:1; min-width:0;">
+      <div class="bb-title">인식 결과 확인</div>
+      <div class="bb-sub">노란 문항만 한 번 더 확인해 주세요.</div>
+    </div>
+    <div class="avatar" style="width:46px; height:46px;"><img class="pixel" data-asset="pixel-face-icons/dami-face-focus.png" alt="집중하는 정다미" style="width:40px !important; height:40px !important;"></div>
+  </div>
+  <div class="scroll" style="gap:14px;">
+    <canvas id="warpCanvas" class="qcanvas"></canvas>
+    <div style="font-size:12.5px; color:var(--muted); line-height:1.6;">인식이 잘못된 문항은 번호를 눌러 직접 고쳐주세요. <b style="color:var(--warn);">노란색</b>은 인식이 확실하지 않은 문항입니다. 정답이 여러 개인 문항은 콤마로 구분해 입력하세요 (예: 2,3).</div>
+    <div class="qgrid" id="qgrid"></div>
+    <button id="submitFinalBtn" class="btn green">채점하기</button>
+    <button class="btn ghost" onclick="document.getElementById('fileInputCamera').click()">재촬영하기</button>
+    <button class="btn ghost" onclick="document.getElementById('fileInputGallery').click()">갤러리에서 선택하기</button>
+  </div>
+</div>
+
+<!-- ============ 채점 결과 ============ -->
+<div class="screen" id="view-result">
+  <div class="scroll">
+    <div class="row">
+      <div style="min-width:0;">
+        <div class="eyebrow">RESULT</div>
+        <div class="pagetitle" id="resultTitle">-</div>
+      </div>
+      <span class="chip" style="background:#E4F3E5; color:#426F50; flex-shrink:0;">채점 완료</span>
+    </div>
+
+    <div class="score">
+      <div>
+        <div class="sc-label">채점 완료</div>
+        <div class="sc-big"><b id="resultCorrect">0</b><span id="resultTotalLabel">/ 0문항 정답</span></div>
+        <div class="sc-sub" id="resultScoreLabel">0점</div>
+      </div>
+      <img class="pixel" id="resultMascot" data-asset="pixel-motion/dami-thinking-motion.webp" data-fallback="pixel-pet/dami-thinking.png" alt="정다미">
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <span class="sectitle">문항별 정답</span>
+      <div class="ansgrid" id="resultAnswerGrid"></div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <span class="sectitle" style="color:var(--bad);">오답 노트</span>
+      <div id="resultWrongList" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+
+    <div class="card green">
+      <div class="dami-say">
+        <img class="pixel" id="resultFace" data-asset="pixel-face-icons/dami-face-touched.png" alt="정다미">
+        <div style="min-width:0; flex:1;">
+          <div class="sectitle" style="color:#426F50;">이번 주 총평</div>
+          <div style="font-size:13.5px; line-height:1.65; color:var(--ink); white-space:pre-line; margin-top:4px;" id="resultOverall">-</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="flex-shrink:0; padding:6px 18px 26px;">
+    <button class="btn dark" id="resultBackBtn" onclick="goHomeAfterResult()">홈으로 돌아가기</button>
+  </div>
+</div>
+
+<div class="score-cheer" id="scoreCheer" aria-hidden="true"><img class="pixel" data-asset="pixel-motion/dami-cheer-motion.webp" data-fallback="pixel-face-icons/dami-face-excited.png" alt="축하하는 정다미"></div>
+<div class="score-sad" id="scoreSad" aria-hidden="true"><img class="pixel" data-asset="pixel-pet/dami-oops.png" alt="아쉬워하는 정다미"></div>
+
+<!-- ============ 학부모 확인 화면 ============ -->
+<div class="screen" id="view-parent">
+  <div class="homebtn" onclick="refreshScreen(this)" aria-label="새로고침" title="새로고침">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 11a8 8 0 1 0-2.3 5.7" stroke="#4A2F23" stroke-width="2.4" stroke-linecap="square"/><path d="M20 4v7h-7" stroke="#4A2F23" stroke-width="2.4" stroke-linecap="square"/></svg>
+  </div>
+  <div class="topright"><button class="pillbtn" onclick="doLogout()">로그아웃</button></div>
+  <div class="scroll" style="padding-top:66px;">
+    <div class="row">
+      <div style="min-width:0;">
+        <span class="chip" style="margin-bottom:8px;">학부모 확인 화면</span>
+        <div class="pagetitle" id="parentName">- 학생</div>
+        <div class="pagesub">매주 과제 제출 현황을 확인하세요</div>
+      </div>
+      <div class="avatar"><img class="pixel" data-asset="pixel-face-icons/dami-face-confident.png" alt="정다미"></div>
+    </div>
+
+    <div class="card green" id="parentAssignmentCard" style="display:flex; align-items:center; justify-content:space-between; gap:10px;"></div>
+
+    <div class="badgerow" id="parentBadgeRow" style="display:none;"></div>
+
+    <div id="parentMissedNote" style="display:none; background:var(--bad-tint); border:2px solid var(--ink); box-shadow:3px 3px 0 var(--soft-shadow); padding:12px 14px; font-size:12.5px; color:var(--bad); line-height:1.5;"></div>
+
+    <div class="card" id="parentAssignHistCard" style="display:none; flex-direction:column; gap:6px;">
+      <div class="row"><span class="sectitle">과제 내역</span><span id="parentAssignHistMeta"></span></div>
+      <div id="parentAssignHistList" class="history-list"></div>
+    </div>
+
+    <div class="card" id="parentLectureCard" style="display:none; flex-direction:column; gap:2px;">
+      <div class="row" style="align-items:baseline;"><span class="sectitle">강의 수강</span><span style="font-size:12px; color:var(--muted);" id="parentLectureMeta"></span></div>
+      <div id="parentLectureList"></div>
+    </div>
+
+    <div class="card" id="parentClassLogCard" style="display:none; flex-direction:column; gap:6px;">
+      <span class="sectitle">이번 주 수업 내역</span>
+      <div id="parentClassLogList" style="display:flex; flex-direction:column; gap:2px;"></div>
+    </div>
+
+    <div class="card chartbox" style="display:flex; flex-direction:column; gap:10px;">
+      <div class="row" style="align-items:baseline;">
+        <span class="sectitle">누적 점수</span>
+        <span class="chip">최근 6주</span>
+      </div>
+      <svg id="parentChart" width="100%" height="146" viewBox="0 0 326 146"></svg>
+      <div id="parentChartLabels" style="display:flex; justify-content:space-between; padding:0 8px 0 26px;"></div>
+    </div>
+
+    <div id="parentCommentCard" class="card coral" style="display:none; flex-direction:column; gap:8px;">
+      <div class="row">
+        <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+          <img class="pixel" data-asset="pixel-face-icons/dami-face-proud.png" alt="" style="width:40px; height:40px; object-fit:contain;">
+          <span class="sectitle" style="color:var(--accent-dark);" id="parentCommentWeek">총평</span>
+        </div>
+        <span style="font-size:11.5px; color:var(--muted);" id="parentCommentDate"></span>
+      </div>
+      <div style="font-size:13.5px; line-height:1.65; color:var(--ink); white-space:pre-line;" id="parentCommentText"></div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <span class="sectitle">제출 이력 <small>(눌러서 피드백 보기)</small></span>
+      <div id="parentHistory" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ OMR 서식 인쇄 ============ -->
+<div class="screen" id="view-template">
+  <div class="backbar">
+    <div class="iconbtn" onclick="goBack()" aria-label="뒤로가기">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#4A2F23" stroke-width="2.6" stroke-linecap="square"/></svg>
+    </div>
+    <div>
+      <div class="bb-title">OMR 서식 미리보기</div>
+      <div class="bb-sub">A4로 출력해 과제 답안을 작성하세요.</div>
+    </div>
+  </div>
+  <div class="scroll" style="gap:14px;">
+    <div class="help-strip">
+      <img class="pixel" data-asset="pixel-pet/dami-thumbs-up.png" alt="엄지를 든 정다미">
+      <div><b>굵은 테두리까지 찍어 줘!</b><p>A4에 인쇄해서 제출용으로 사용하세요. 답안지를 감싼 굵은 테두리가 사진에서 잘리지 않고 전체가 다 나오도록 촬영해야 인식이 잘 됩니다.</p></div>
+    </div>
+    <canvas id="templateCanvas"></canvas>
+    <div class="card yellow" style="padding:12px 14px; font-size:12.5px; color:var(--muted);"><b style="color:var(--ink);">인쇄 안내</b> · 용지 A4 · 여백 기본 · 배율 100%를 권장해요.</div>
+    <button onclick="window.print()">인쇄</button>
+  </div>
+</div>
+
+<!-- ============ 관리자 대시보드 ============ -->
+<div class="screen wide" id="view-admin">
+  <div class="scroll" style="padding:24px 24px 30px;">
+    <div class="admin-head">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div class="avatar"><img class="pixel" data-asset="pixel-face-icons/dami-face-focus.png" alt="정다미"></div>
+        <div>
+          <div class="eyebrow">TEACHER CONSOLE</div>
+          <div class="pagetitle">관리자 대시보드</div>
+          <div class="pagesub">총 <span id="adminTotalCount">0</span>명 · 반별 제출 현황과 성적을 확인하세요</div>
+        </div>
+      </div>
+      <div class="ah-tools"><button class="btn ghost" onclick="refreshScreen(this)" title="새로고침"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 11a8 8 0 1 0-2.3 5.7" stroke="#4A2F23" stroke-width="2.4" stroke-linecap="square"/><path d="M20 4v7h-7" stroke="#4A2F23" stroke-width="2.4" stroke-linecap="square"/></svg> 새로고침</button><button class="btn ghost" onclick="doLogout()">로그아웃</button></div>
+    </div>
+
+    <div id="adminTabs"></div>
+
+    <div class="admin-kpis" id="adminKpis" style="display:none;"></div>
+
+    <div class="admin-grid">
+      <div class="admin-col">
+        <div class="missbox" id="adminMissingBox" style="display:none;">
+          <img class="pixel" data-asset="pixel-pet/dami-oops.png" alt="당황한 정다미">
+          <div style="font-size:13.5px; color:var(--bad); line-height:1.55;" id="adminMissingText"></div>
+        </div>
+
+        <div>
+          <div class="row" style="padding:2px 2px 10px;">
+            <span class="sectitle" id="adminListTitle">학생 목록</span>
+            <span style="font-size:12px; color:var(--muted); text-align:right;" id="adminListMeta"></span>
+          </div>
+          <div id="adminStudentList"></div>
+        </div>
+      </div>
+
+      <div class="admin-col">
+        <div class="card donutwrap" id="adminDonutCard" style="display:none;">
+          <svg id="adminDonut" width="72" height="72" viewBox="0 0 72 72"></svg>
+          <div>
+            <div class="dw-pct" id="adminDonutPct">0%</div>
+            <div class="dw-label" id="adminDonutLabel">제출률</div>
+          </div>
+        </div>
+
+        <div id="adminClassWarn" class="card yellow" style="display:none; flex-direction:column; gap:10px;"></div>
+
+        <div class="card" style="display:flex; flex-direction:column; gap:10px;">
+          <span class="sectitle">정답표 · 채점 관리</span>
+          <div style="font-size:12.5px; color:var(--muted); line-height:1.55;">출제기에서 만든 정답표 엑셀을 올리면 문제해설 시트와 과제목록이 자동으로 만들어져요.</div>
+          <div class="toolrow">
+            <button class="btn" onclick="openImportScreen()">정답표 올리기</button>
+            <button class="btn ghost" onclick="openSubjScreen()">서술형 점수 입력</button>
+            <button class="btn ghost" onclick="regradePrompt_()">재채점</button>
+          </div>
+          <div id="adminToolMsg" style="font-size:12.5px; color:var(--muted); display:none; white-space:pre-line; line-height:1.55;"></div>
+        </div>
+
+        <div class="card" id="adminLectureCard" style="display:flex; flex-direction:column; gap:10px;">
+          <div class="row">
+            <span class="sectitle">강의 수강 현황</span>
+            <div style="display:flex; gap:6px;">
+              <button class="btn ghost smallbtn foldbtn" id="lecFoldBtn" onclick="toggleLectureFold_()">보기 ▾</button>
+              <button class="btn ghost smallbtn" onclick="openLectureScreen()">강의 관리</button>
+            </div>
+          </div>
+          <div id="adminLectureSummary" style="font-size:12.5px; color:var(--muted);">불러오는 중…</div>
+          <div id="adminLectureBody" style="font-size:12.5px; color:var(--muted); display:none;">불러오는 중…</div>
+        </div>
+
+        <div class="card soft" style="display:flex; flex-direction:column; gap:10px;">
+          <span class="sectitle">내보내기 (출제기 연동)</span>
+          <div style="font-size:12.5px; color:var(--muted); line-height:1.55;">변형문제 출제기에서 가져다 쓸 수 있어요.</div>
+          <select id="exportKind" style="font-size:13px; padding:9px 10px;">
+            <option value="stats">문항별 정답률</option>
+            <option value="dist">선지 분포 (어느 선지를 골랐는지)</option>
+            <option value="items">학생×문항 결과 (관리 도구용)</option>
+            <option value="classes">반 목록</option>
+          </select>
+          <div class="toolrow">
+            <button class="btn" onclick="exportItemStats('csv')">CSV로 받기</button>
+            <button class="btn" onclick="exportItemStats('xlsx')">엑셀(.xlsx)로 받기</button>
+            <button class="btn ghost" onclick="rebuildItemStats_()">다시 계산</button>
+          </div>
+          <div id="adminExportMsg" style="font-size:12.5px; color:var(--muted); display:none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 관리자: 강의 관리 (Lecture.gs) ============ -->
+<div class="screen wide" id="view-admin-lecture">
+  <div class="backbar" style="padding:22px 24px 6px;">
+    <div class="iconbtn" onclick="goBack()" aria-label="뒤로가기">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#4A2F23" stroke-width="2.6" stroke-linecap="square"/></svg>
+    </div>
+    <div style="flex:1;">
+      <div class="bb-title">강의 관리</div>
+      <div class="bb-sub">강의 등록 · 공개 · 학생 링크</div>
+    </div>
+  </div>
+  <div class="scroll" style="padding:16px 24px 30px;">
+    <div class="admin-grid">
+      <div class="admin-col">
+        <div class="card" style="display:flex; flex-direction:column; gap:10px;">
+          <span class="sectitle">강의 등록 / 고치기</span>
+          <div style="font-size:12.5px; color:var(--muted); line-height:1.6;">제작 패널에서 「내보내기」로 복사한 강의 데이터를 붙여넣으세요. 같은 강의ID가 있으면 새 내용으로 바뀌고, 학생 수강 기록은 그대로 남아요.</div>
+          <textarea class="lecjson" id="lecJson" placeholder='{"id":"hangul","title":"한글 창제 원리", ...}'></textarea>
+          <label for="lecTarget" style="margin:0;">대상 (과제목록과 같은 규칙 · 예: 2학년 / A중 2학년,B중 2학년)</label>
+          <input type="text" id="lecTarget" placeholder="2학년">
+          <label style="display:flex; align-items:center; gap:8px; margin:0; color:var(--ink); font-size:13px;"><input type="checkbox" id="lecPub" checked> 바로 공개하기</label>
+          <button class="btn" onclick="saveLecture_()">등록하기</button>
+          <div id="lecSaveMsg" style="font-size:12.5px; color:var(--muted); min-height:18px;"></div>
+        </div>
+        <div class="help-strip">
+          <img class="pixel" data-asset="pixel-motion/dami-read-rocking-chair-motion.webp" data-fallback="pixel-motion/dami-read-rocking-chair-motion.gif" alt="흔들의자에서 책을 읽는 정다미" style="width:96px; height:96px;">
+          <div><b>강의 자료는 내가 챙길게</b><p>대상과 공개 여부를 바꿔도 학생 수강 기록은 그대로 남아요.</p></div>
+        </div>
+      </div>
+      <div class="admin-col">
+        <span class="sectitle" style="padding:2px 2px 0;">등록된 강의</span>
+        <div id="lecList" style="display:flex; flex-direction:column; gap:12px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 관리자: 정답표 올리기 ============ -->
+<div class="screen wide" id="view-admin-import">
+  <div class="backbar" style="padding:22px 24px 6px;">
+    <div class="iconbtn" onclick="goBack()" aria-label="뒤로가기">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#4A2F23" stroke-width="2.6" stroke-linecap="square"/></svg>
+    </div>
+    <div style="flex:1;">
+      <div class="bb-title">정답표 올리기</div>
+      <div class="bb-sub">출제기에서 붙여넣기 · 정답표 엑셀(.xlsx)</div>
+    </div>
+  </div>
+  <div class="scroll" style="padding:16px 24px 30px;">
+    <div class="admin-grid">
+      <div class="admin-col">
+        <div class="card" style="display:flex; flex-direction:column; gap:10px;">
+          <div class="eyebrow">PASTE DATA</div>
+          <span class="sectitle">출제기에서 보낸 정답표 붙여넣기</span>
+          <div style="font-size:12.5px; color:var(--muted); line-height:1.6;">출제기 「출제 이력」 → 시험지의 [제출기로 보내기] → [복사]를 누른 뒤, 아래 칸을 누르고 Ctrl+V(휴대폰은 길게 눌러 붙여넣기) 하세요. 문제해설 시트의 <b>마지막으로 채워진 줄 다음 줄의 1열부터</b> 이어서 적혀요. 기존 줄은 덮어쓰지 않아요.</div>
+          <textarea id="importPaste" rows="4" placeholder="여기에 붙여넣기 (Ctrl+V)" style="font-size:13px; resize:vertical;" onpaste="setTimeout(onImportPaste_,0)" oninput="onImportPaste_()"></textarea>
+        </div>
+        <div class="card soft" style="display:flex; flex-direction:column; gap:10px;">
+          <div class="eyebrow">XLSX UPLOAD</div>
+          <span class="sectitle">엑셀 파일로 올리기</span>
+          <div style="font-size:12.5px; color:var(--muted); line-height:1.6;">엑셀의 시트 하나가 시험지 하나예요. 올리면 아래에 미리보기가 뜨고, 확인 후 [반영하기]를 누르면 문제해설 시트와 과제목록에 들어가요. 엑셀로 올리면 같은 주차·대상의 기존 문항은 새 내용으로 바뀌어요(고칠 때 쓰세요).</div>
+          <input type="file" id="importFile" accept=".xlsx,.xls" onchange="onImportFile(event)">
+          <div id="importMsg" style="font-size:12.5px; color:var(--muted); display:none;"></div>
+        </div>
+      </div>
+      <div class="admin-col">
+        <div class="help-strip">
+          <img class="pixel" data-asset="pixel-motion/salpimi-inspect-motion.webp" data-fallback="pixel-motion/salpimi-inspect-motion.gif" alt="돋보기로 살펴보는 살피미" style="width:96px; height:96px;">
+          <div><b>살피미가 먼저 확인해요</b><p>붙여넣거나 올린 정답표는 반영하기 전에 여기 미리보기로 검사 결과가 나와요.</p></div>
+        </div>
+        <div id="importPreview" style="display:flex; flex-direction:column; gap:12px;"></div>
+        <button class="btn green" id="importGoBtn" style="display:none;" onclick="doImport_()">반영하기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 관리자: 서술형 점수 입력 ============ -->
+<div class="screen wide" id="view-admin-subj">
+  <div class="backbar" style="padding:22px 24px 6px;">
+    <div class="iconbtn" onclick="goBack()" aria-label="뒤로가기">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#4A2F23" stroke-width="2.6" stroke-linecap="square"/></svg>
+    </div>
+    <div style="flex:1; min-width:0;">
+      <div class="bb-title">서술형 점수 입력</div>
+      <div class="bb-sub" id="subjSub">-</div>
+    </div>
+    <img class="pixel" data-asset="pixel-face-icons/dami-face-thinking.png" alt="" style="width:48px; height:48px; object-fit:contain;">
+  </div>
+  <div class="scroll" style="padding:16px 24px 30px;">
+    <div id="subjBody" style="display:flex; flex-direction:column; gap:14px;"></div>
+    <button class="btn green" id="subjSaveBtn" style="display:none;" onclick="saveSubj_()">저장하기</button>
+  </div>
+</div>
+
+<!-- ============ 관리자: 학생 상세 ============ -->
+<div class="screen wide" id="view-admin-detail">
+  <div class="backbar" style="padding:22px 24px 6px;">
+    <div class="iconbtn" onclick="goBack()" aria-label="뒤로가기">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#4A2F23" stroke-width="2.6" stroke-linecap="square"/></svg>
+    </div>
+    <div style="flex:1; min-width:0;">
+      <div class="eyebrow">STUDENT DETAIL</div>
+      <div class="bb-title" id="admDetailName">-</div>
+      <div class="bb-sub">학생 상세 현황</div>
+    </div>
+    <div class="iconbtn" onclick="refreshScreen(this)" aria-label="새로고침" title="새로고침"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 11a8 8 0 1 0-2.3 5.7" stroke="#4A2F23" stroke-width="2.4" stroke-linecap="square"/><path d="M20 4v7h-7" stroke="#4A2F23" stroke-width="2.4" stroke-linecap="square"/></svg></div>
+  </div>
+  <div class="scroll" style="padding:16px 24px 30px;">
+    <div class="admin-grid">
+      <div class="admin-col">
+        <div class="card green" id="admDetailAssignCard" style="display:flex; align-items:center; justify-content:space-between; gap:10px;"></div>
+
+        <div id="admDetailMissedNote" style="display:none; background:var(--bad-tint); border:2px solid var(--ink); box-shadow:3px 3px 0 var(--soft-shadow); padding:12px 14px; font-size:12.5px; color:var(--bad); line-height:1.5;"></div>
+
+        <div class="card chartbox" style="display:flex; flex-direction:column; gap:10px;">
+          <div class="row" style="align-items:baseline;">
+            <span class="sectitle">누적 점수</span>
+            <span class="chip">최근 6주</span>
+          </div>
+          <svg id="admDetailChart" width="100%" height="146" viewBox="0 0 326 146"></svg>
+          <div id="admDetailChartLabels" style="display:flex; justify-content:space-between; padding:0 8px 0 26px;"></div>
+        </div>
+
+        <div class="card" id="admAssignHistCard" style="display:none; flex-direction:column; gap:6px;">
+          <div class="row"><span class="sectitle">과제 내역</span><span id="admAssignHistMeta"></span></div>
+          <div id="admAssignHistList" class="history-list"></div>
+        </div>
+      </div>
+
+      <div class="admin-col">
+        <div id="admDetailCommentCard" class="card coral" style="display:none; flex-direction:column; gap:8px;">
+          <div class="row">
+            <span class="sectitle" style="color:var(--accent-dark);" id="admDetailCommentWeek">총평</span>
+            <span style="font-size:11.5px; color:var(--muted);" id="admDetailCommentDate"></span>
+          </div>
+          <div style="font-size:13.5px; line-height:1.65; color:var(--ink); white-space:pre-line;" id="admDetailCommentText"></div>
+        </div>
+
+        <div class="card" id="admClassLogCard" style="display:none; flex-direction:column; gap:6px;">
+          <span class="sectitle">수업 내역</span>
+          <div id="admClassLogList" style="display:flex; flex-direction:column; gap:2px;"></div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <span class="sectitle">제출 이력 <small>(눌러서 피드백 보기)</small></span>
+          <div id="admDetailHistory" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== 정다미 자산 ===================== */
+const DAMI = {
+  face: n => ASSET('pixel-face-icons/dami-face-' + n + '.png'),
+  cheer: 'pixel-motion/dami-cheer-motion.webp',
+  thinking: 'pixel-motion/dami-thinking-motion.webp',
+};
+// 화면 마크업의 <img data-asset="..."> 에 실제 주소를 넣는다. data-fallback 이 있으면 실패 시 그 파일로 바꾼다.
+function hydrateAssets_(root){
+  (root || document).querySelectorAll('img[data-asset]').forEach(img=>{
+    if(img.dataset.loaded) return;
+    img.dataset.loaded = '1';
+    const fb = img.dataset.fallback;
+    if(fb) img.onerror = function(){ this.onerror = null; this.src = ASSET(fb); };
+    img.src = ASSET(img.dataset.asset);
+  });
+}
+hydrateAssets_();
+// 이미지 교체(채점 결과 캐릭터 등). fallback 은 data-asset 경로 기준.
+function setAsset_(id, path, fallback){
+  const img = document.getElementById(id);
+  if(!img) return;
+  img.onerror = fallback ? function(){ this.onerror = null; this.src = ASSET(fallback); } : null;
+  img.src = ASSET(path);
+}
+
+/* ===================== 전역 상태 ===================== */
+let USER = null;          // {name, sid, grade, cls}
+let MODE = 'student';     // 'student' | 'parent'
+let ROLE = 'student';     // 'student' | 'admin'
+const SESSION_KEY = 'grader-session';   // 로그인 유지 열쇠 (강의 페이지와 같이 씀) — 비밀번호는 저장하지 않음
+function readSession_(){ try { const s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); return s && s.token ? s : null; } catch(e){ return null; } }
+function writeSession_(token, mode){ try { localStorage.setItem(SESSION_KEY, JSON.stringify({ token, mode })); } catch(e){} }
+function clearSession_(){ try { localStorage.removeItem(SESSION_KEY); } catch(e){} }
+let ASSIGNMENT = null;    // {week, title, count, choices, submitted}
+let MISSED = [];          // 아직 제출하지 않은 지난 과제 목록 (최신순, 최대 3개)
+let recognizedAnswers = [];
+let confidenceFlags = [];
+let ADMIN_OVERVIEW = null;   // getAdminOverview() 결과 캐시
+let ADMIN_ACTIVE = 0;        // 관리자 화면에서 선택된 반 인덱스
+let ADMIN_DETAIL_NAME = null;// 관리자가 상세보기 중인 학생 이름
+let RESULT_RETURN = 'home';  // 채점 결과 화면에서 뒤로가기 시 어디로 돌아갈지 ('home' | 'admin')
+let SCREEN_STACK = [];       // 화면 전환 이력 (뒤로가기용). 맨 위가 "바로 이전 화면"
+let CURRENT_SCREEN = 'view-login';
+
+// opts.replace = true면 이력에 쌓지 않고 그냥 화면만 바꾼다 (뒤로가기(goBack)로 이동할 때 사용 —
+// 안 그러면 뒤로가기 한 번에 이력이 다시 쌓여서 앞으로 못 돌아가는 것처럼 보인다).
+// 휴대폰·브라우저 뒤로가기: 화면을 바꿀 때마다 브라우저 이력에 한 칸씩 남겨 두고,
+// 뒤로가기가 눌리면 앱 안의 goBack()으로 "바로 이전 화면"에 돌아간다 (로그인 화면으로 튕기지 않음).
+let H_SEQ = 0, H_POS = 0;
+const HIST = (typeof google !== 'undefined' && google.script && google.script.history) ? google.script.history : null;
+function showScreen(id, opts){
+  opts = opts || {};
+  if(!opts.replace && id !== CURRENT_SCREEN){
+    if(CURRENT_SCREEN !== 'view-login') SCREEN_STACK.push(CURRENT_SCREEN);
+    if(HIST && USER && id !== 'view-login'){ H_POS = ++H_SEQ; try { HIST.push({ seq: H_POS }, null, null); } catch(e){} }
+  }
+  document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  CURRENT_SCREEN = id;
+}
+
+// 화면 좌상단 "<" 버튼에서 호출한다. 어느 경로로 들어왔든(홈에서 왔는지, 미제출 과제
+// 목록에서 왔는지, 관리자 목록에서 왔는지 등) 고정된 목적지 대신 실제로 "바로 이전에
+// 있던 화면"으로 돌아간다.
+function goBack(){
+  const prev = SCREEN_STACK.pop();
+  const homeId = !USER ? 'view-login' : (ROLE === 'admin' ? 'view-admin' : (MODE === 'parent' ? 'view-parent' : 'view-home'));
+  if(prev){
+    showScreen(prev, { replace: true });
+  } else if(USER){
+    // 이력이 없으면(예: 새로고침 직후) 안전하게 홈/대시보드로 돌아간다. 이미 홈이면 그대로 둔다.
+    if(CURRENT_SCREEN === homeId) return;
+    if(ROLE === 'admin') loadAdmin(true); else loadDashboard();
+  } else {
+    showScreen('view-login', { replace: true });
+  }
+}
+
+if(HIST){
+  HIST.setChangeHandler(e => {
+    const seq = e && e.state && e.state.seq ? e.state.seq : 0;
+    if(seq < H_POS && USER){ H_POS = seq; goBack(); }   // 뒤로가기
+    else H_POS = seq;                                   // 앞으로가기는 무시
+  });
+}
+
+/* 화면 오른쪽 위 ↻ : 지금 화면의 데이터를 다시 불러온다 */
+function refreshScreen(btn){
+  if(btn){ btn.classList.add('spin'); setTimeout(()=>btn.classList.remove('spin'), 1200); }
+  if(CURRENT_SCREEN === 'view-home' || CURRENT_SCREEN === 'view-parent') loadDashboard();
+  else if(CURRENT_SCREEN === 'view-admin') loadAdmin(true);
+  else if(CURRENT_SCREEN === 'view-admin-detail' && ADMIN_DETAIL_NAME) adminOpenDetail(ADMIN_DETAIL_NAME);
+}
+
+/* 로그인(또는 자동 로그인) 성공 후 들어가기 */
+function enterApp_(res, mode){
+  USER = res.student;
+  MODE = mode || 'student';
+  ROLE = res.role === 'admin' ? 'admin' : 'student';
+  SCREEN_STACK = [];
+  if(HIST){ try { HIST.replace({ seq: 0 }, null, null); } catch(e){} H_SEQ = 0; H_POS = 0; }
+  if(ROLE === 'admin'){ loadAdmin(); return; }
+  loadDashboard();
+}
+
+/* 페이지를 새로 열면(새로고침·뒤로가기로 다시 들어옴) 저장된 열쇠로 바로 들어간다 */
+function resumeLogin_(){
+  const sess = readSession_();
+  if(!sess) return;
+  const errEl = document.getElementById('loginErr');
+  const btnS = document.getElementById('loginBtnStudent'), btnP = document.getElementById('loginBtnParent');
+  btnS.disabled = true; btnP.disabled = true;
+  btnS.innerHTML = '<span class="spinner"></span>자동 로그인 중...<img class="login-loading-emoji" src="' + DAMI.face('focus') + '" alt="">';
+  google.script.run
+    .withSuccessHandler(res=>{
+      btnS.disabled = false; btnP.disabled = false; btnS.textContent = '로그인하기';
+      if(!res.ok){ clearSession_(); errEl.textContent = res.message || ''; return; }
+      enterApp_(res, sess.mode);
+    })
+    .withFailureHandler(err=>{
+      btnS.disabled = false; btnP.disabled = false; btnS.textContent = '로그인하기';
+      errEl.textContent = '자동 로그인 오류: ' + err.message;
+    })
+    .resumeSession(sess.token);
+}
+
+/* ===================== 로그인 ===================== */
+function doLogin(mode){
+  const name = document.getElementById('loginName').value.trim();
+  const pw = document.getElementById('loginPw').value.trim();
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  if(!name || !pw){ errEl.textContent = '이름과 비밀번호를 입력해주세요.'; return; }
+
+  const btnId = mode === 'parent' ? 'loginBtnParent' : 'loginBtnStudent';
+  const btnLabel = mode === 'parent' ? '학부모로 로그인하기' : '로그인하기';
+  const btnStudent = document.getElementById('loginBtnStudent');
+  const btnParent = document.getElementById('loginBtnParent');
+  const btn = document.getElementById(btnId);
+  btnStudent.disabled = true; btnParent.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>확인 중...<img class="login-loading-emoji" src="' + DAMI.face('focus') + '" alt="">';
+
+  google.script.run
+    .withSuccessHandler(res=>{
+      btnStudent.disabled = false; btnParent.disabled = false;
+      btn.textContent = btnLabel;
+      if(!res.ok){ errEl.textContent = res.message; return; }
+      if(res.token) writeSession_(res.token, mode); else clearSession_();
+      enterApp_(res, mode);
+    })
+    .withFailureHandler(err=>{
+      btnStudent.disabled = false; btnParent.disabled = false;
+      btn.textContent = btnLabel;
+      errEl.textContent = '오류: ' + err.message;
+    })
+    .login(name, pw, document.getElementById('loginKeep').checked);
+}
+
+function doLogout(){
+  const sess = readSession_();
+  if(sess) google.script.run.endSession(sess.token);
+  clearSession_();
+  LECTURE_STATUS = null; MY_LECTURES = null;
+  ['homeLectureCard','parentLectureCard'].forEach(id=>{ const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+  USER = null; ADMIN_OVERVIEW = null; ADMIN_ACTIVE = 0; ADMIN_DETAIL_NAME = null;
+  SCREEN_STACK = []; // 로그아웃하면 뒤로가기 이력도 함께 초기화
+  document.getElementById('loginName').value = '';
+  document.getElementById('loginPw').value = '';
+  document.getElementById('loginErr').textContent = '';
+  showScreen('view-login', { replace: true });
+}
+
+function loadDashboard(){
+  RESULT_RETURN = 'home';
+  google.script.run
+    .withSuccessHandler(dash=>{
+      ASSIGNMENT = dash.current;
+      if(MODE === 'parent') renderParent(dash);
+      else renderHome(dash);
+      loadMyLectures_();
+    })
+    .withFailureHandler(err=> alert('불러오기 오류: ' + err.message))
+    .getDashboard(USER.name);
+}
+
+/* ===================== 공통: 빈 상태 / 배지 ===================== */
+function emptyState_(title, sub){
+  return `<div class="emptystate">
+    <div class="es-icon"><img src="${DAMI.face('default')}" alt=""></div>
+    <div class="es-title">${title}</div>
+    ${sub ? `<div class="es-sub">${sub}</div>` : ''}
+  </div>`;
+}
+
+// 학생 홈/학부모 화면 상단에 연속 제출 스트릭·만점 횟수 배지를 보여준다. 둘 다 0이면 표시하지 않는다.
+function renderStreakBadges(prefix, streak){
+  const row = document.getElementById(prefix + 'BadgeRow');
+  if(!row) return;
+  if(!streak || (!streak.current && !streak.perfectCount)){ row.style.display = 'none'; return; }
+  const parts = [];
+  if(streak.current > 1){
+    parts.push(`<span class="badge streak">🔥 ${streak.current}주 연속 제출</span>`);
+  }
+  if(streak.perfectCount > 0){
+    parts.push(`<span class="badge perfect">🏅 만점 ${streak.perfectCount}회</span>`);
+  }
+  row.innerHTML = parts.join('');
+  row.style.display = parts.length ? 'flex' : 'none';
+}
+
+/* ===================== 학생 홈 ===================== */
+function renderHome(dash){
+  const schoolName = USER.school || USER.schoolName || USER.school_name || '';
+  document.getElementById('homeGreeting').textContent = USER.name + (schoolName ? ' (' + schoolName + ')' : '');
+  const avatar = document.getElementById('homeAvatar');
+  const streakCount = Number(dash && dash.streak && dash.streak.current || 0);
+  const submittedNow = !!(dash && dash.current && dash.current.submitted);
+  const avatarImage = (face, alt) => `<img src="${DAMI.face(face)}" alt="${alt}" onerror="this.onerror=null;this.src='${DAMI.face('default')}';">`;
+  if(!submittedNow) {
+    avatar.innerHTML = avatarImage('thinking', '숙제 미제출');
+    avatar.title = '숙제 미제출';
+  } else if(streakCount >= 4) {
+    avatar.innerHTML = avatarImage('proud', '4주 이상 연속 제출');
+    avatar.title = `${streakCount}주 이상 연속 제출`;
+  } else if(streakCount >= 2) {
+    avatar.innerHTML = avatarImage('excited', `${streakCount}주 연속 제출`);
+    avatar.title = `${streakCount}주 연속 제출`;
+  } else {
+    avatar.innerHTML = avatarImage('default', '정다미');
+    avatar.title = '';
+  }
+  const eb = document.getElementById('homeEyebrow');
+  if(eb) eb.textContent = dash.current && dash.current.week ? String(dash.current.week) + ' · MY HOMEWORK' : 'MY HOMEWORK';
+
+  const card = document.getElementById('assignmentCard');
+  if(dash.current){
+    const submitted = dash.current.submitted;
+    const due = dash.current.due || dash.current.deadline || dash.current.dueDate || '';
+    card.innerHTML = `
+      <div class="assign-hero">
+        <div style="min-width:0;">
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <span class="chip">${dash.current.week}</span>
+            <span class="chip" style="color:${submitted?'var(--good)':'var(--bad)'}; background:${submitted?'var(--good-tint)':'var(--bad-tint)'};">${submitted?'제출 완료':'미제출'}</span>
+          </div>
+          <div class="ah-title">${dash.current.title}</div>
+          <div class="ah-meta">${dash.current.count>0 ? dash.current.count+'문항 · 선택지 '+dash.current.choices+'개' : '문항 정보 준비 중'}</div>
+        </div>
+        <img class="pixel" src="${ASSET(submitted ? DAMI.cheer : DAMI.thinking)}" alt="정다미" onerror="this.onerror=null;this.src='${DAMI.face(submitted ? 'proud' : 'thinking')}';">
+        <div class="ah-foot">
+          <span style="font-size:12px; color:var(--muted);">${due ? '마감 ' + due : (dash.current.date ? '출제일 ' + dash.current.date : '')}</span>
+          <button ${(submitted||dash.current.count===0)?'disabled':''} onclick="goSubmit()">${submitted?'이번 주 제출 완료':(dash.current.count===0?'아직 제출할 수 없어요':'답안지 촬영하고 제출하기')}</button>
+        </div>
+      </div>
+    `;
+  } else {
+    card.innerHTML = emptyState_('아직 등록된 과제가 없어요', '선생님이 과제를 등록하면 여기에 나타나요.');
+  }
+
+  renderStreakBadges('home', dash.streak);
+
+  MISSED = dash.missed || [];
+  const missedWrap = document.getElementById('missedWrap');
+  if(MISSED.length){
+    missedWrap.style.display = 'flex';
+    document.getElementById('missedList').innerHTML = MISSED.map((m,idx)=>`
+      <div class="card" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div>
+          <div style="font-size:13.5px; font-weight:700;">${m.week} · ${m.title}</div>
+          <div style="font-size:12px; color:var(--muted); margin-top:2px;">${m.count}문항 · 선택지 ${m.choices}개</div>
+        </div>
+        <button class="btn ghost smallbtn" style="flex-shrink:0; color:var(--bad);" onclick="goSubmitFor(${idx})">제출하기</button>
+      </div>
+    `).join('');
+  } else {
+    missedWrap.style.display = 'none';
+  }
+
+  renderClassLog('home', dash.classLog);
+  renderAssignmentHistory('home', dash.assignmentHistory, dash);
+  drawChart('homeChart', 'homeChartLabels', dash.chart);
+  renderHistoryList('homeHistory', dash.history);
+  showScreen('view-home');
+}
+
+// "이번 주 수업 내역" 카드: 학생이름이 비어있는 항목은 반 전체 공통 진도, 채워진 항목은
+// 그 학생만을 위한 개별 컨설트 메모다. prefix는 'home'(학생) / 'parent'(학부모) / 'adm'(관리자 상세).
+function renderClassLog(prefix, classLog){
+  const card = document.getElementById(prefix + 'ClassLogCard');
+  const list = document.getElementById(prefix + 'ClassLogList');
+  if(!classLog || !classLog.length){ card.style.display = 'none'; return; }
+  card.style.display = 'flex';
+  list.innerHTML = classLog.map(c=>`
+    <div style="display:flex; flex-direction:column; gap:4px; padding:10px 0; border-bottom:2px dashed var(--line);">
+      <div class="row">
+        <span class="chip" style="font-size:10.5px; padding:3px 8px; color:${c.forStudent?'var(--accent-dark)':'var(--muted)'}; background:${c.forStudent?'var(--accent-tint)':'var(--beige)'};">${c.forStudent?'개별 코멘트':'반 전체'}</span>
+        <span style="font-size:11px; color:var(--muted);">${c.week}${c.date?(' · '+c.date):''}</span>
+      </div>
+      <div style="font-size:13px; line-height:1.55; white-space:pre-line;">${c.content}</div>
+    </div>
+  `).join('');
+}
+
+// "과제 내역" 카드: 이 학생의 그룹에 공지된 과제 목록(assignmentHistory)을 기준으로,
+// 같은 주차의 현재 과제(current)·미제출(missed)·제출 기록(history)을 붙여서 보여준다.
+//  - 현재 과제: 마감일(있으면)·진행 상태
+//  - 지난 과제: 제출일·점수·피드백(누르면 채점 결과) / 미제출이면 학생 화면에서 바로 제출
+// prefix는 'home'(학생) / 'parent'(학부모) / 'adm'(관리자 상세). forName은 관리자 상세용.
+function weekBox_(week){
+  const s = String(week == null ? '' : week);
+  const m = s.match(/(\d+)\s*주/);
+  return m ? `${m[1]}<small>주차</small>` : `<small>${escH_(s.slice(0,4))}</small>`;
+}
+function renderAssignmentHistory(prefix, list, dash, forName){
+  const card = document.getElementById(prefix + 'AssignHistCard');
+  const el = document.getElementById(prefix + 'AssignHistList');
+  const meta = document.getElementById(prefix + 'AssignHistMeta');
+  if(!list || !list.length){ card.style.display = 'none'; return; }
+  card.style.display = 'flex';
+  dash = dash || {};
+  const history = dash.history || [];
+  const missed = dash.missed || [];
+  const cur = dash.current || null;
+  const streak = Number(dash.streak && dash.streak.current || 0);
+  if(meta) meta.innerHTML = streak > 1 ? `<span class="chip" style="background:#E4F3E5; color:#426F50;">${streak}주 연속 제출</span>` : '';
+  el.innerHTML = list.map(a=>{
+    const isCur = cur && String(cur.week) === String(a.week);
+    const h = history.find(x => String(x.week) === String(a.week));
+    const mIdx = missed.findIndex(x => String(x.week) === String(a.week));
+    const due = a.due || a.deadline || a.dueDate || (isCur ? (cur.due || cur.deadline || cur.dueDate) : '') || '';
+    let metaTxt, result, click = '';
+    if(h){
+      metaTxt = `${h.date ? escH_(h.date) + ' 제출' : '제출 완료'}`;
+      const pct = h.total ? Math.round(h.score / h.total * 100) : h.score;
+      const col = pct >= 80 ? 'var(--good)' : (pct < 60 ? 'var(--bad)' : 'var(--warn)');
+      result = `<strong style="color:${col};">${h.countMode ? (h.score + '/' + h.total) : (h.score + '점')}</strong><span class="go">피드백 ›</span>`;
+      const arg = forName ? `'${h.id}','${forName}'` : `'${h.id}'`;
+      click = ` onclick="openSubmissionDetail(${arg})"`;
+    } else if(isCur){
+      metaTxt = due ? '마감 ' + escH_(due) : (a.date ? '출제일 ' + escH_(a.date) : '이번 주 과제');
+      result = cur.submitted ? `<span style="color:var(--good);">제출 완료</span>` : `<span style="color:var(--bad);">진행 중</span>`;
+    } else if(mIdx >= 0){
+      metaTxt = a.date ? '출제일 ' + escH_(a.date) : '지난 과제';
+      result = (prefix === 'home') ? `<button onclick="event.stopPropagation(); goSubmitFor(${mIdx})">제출하기</button>` : `<span style="color:var(--bad);">미제출</span>`;
+    } else {
+      metaTxt = a.date ? '출제일 ' + escH_(a.date) : '';
+      result = `<span class="go">기록 없음</span>`;
+    }
+    return `<div class="history-row${isCur ? ' current' : ''}${click ? ' clickable' : ''}"${click}>
+      <div class="history-week">${weekBox_(a.week)}</div>
+      <div style="min-width:0;"><div class="history-title">${escH_(a.title)}</div><div class="history-meta">${escH_(String(a.week))}${metaTxt ? ' · ' + metaTxt : ''}</div></div>
+      <div class="history-result">${result}</div>
+    </div>`;
+  }).join('');
+}
+
+function goSubmit(){
+  if(!ASSIGNMENT){ alert('제출할 과제가 없습니다.'); return; }
+  if(ASSIGNMENT.count === 0){ alert('아직 문항 정보가 등록되지 않았어요. 선생님께 문의해주세요.'); return; }
+  document.getElementById('submitSub').textContent = ASSIGNMENT.week + ' · ' + ASSIGNMENT.title;
+  showScreen('view-submit');
+  // 같은 클릭(사용자 제스처) 안에서 바로 카메라를 연다.
+  document.getElementById('fileInputCamera').click();
+}
+
+// "미제출 과제" 목록에서 지난 과제를 골라 제출할 때 사용한다. 채점·OMR 서식은 모두
+// 전역 ASSIGNMENT를 기준으로 동작하므로, 여기서 그 주차 정보로 바꿔치기한 뒤 그대로
+// goSubmit()을 재사용한다.
+function goSubmitFor(idx){
+  const m = MISSED[idx];
+  if(!m) return;
+  ASSIGNMENT = m;
+  window.__templateCoords = null; // 이전 주차의 문항 좌표 캐시를 지워, 새 주차 문항수/선택지수로 다시 그리게 한다
+  goSubmit();
+}
+
+// 제출 내역 카드를 누르면 그때의 채점 결과(문항별 정답표 + 오답 해설 + 총평)를 다시 볼 수 있다.
+// forName이 주어지면(관리자가 다른 학생의 상세를 보는 경우) 그 학생 기준으로 조회하고,
+// 결과 화면의 "뒤로가기"가 관리자 상세 화면으로 돌아가도록 표시해둔다.
+function openSubmissionDetail(id, forName){
+  const name = forName || USER.name;
+  RESULT_RETURN = forName ? 'admin' : 'home';
+  google.script.run
+    .withSuccessHandler(res=> showResult(res))
+    .withFailureHandler(err=> alert('불러오기 오류: ' + err.message))
+    .getSubmissionDetail(name, id);
+}
+
+function renderHistoryList(elId, history, forName){
+  const el = document.getElementById(elId);
+  if(!history.length){ el.innerHTML = emptyState_('아직 제출 내역이 없어요', '과제를 제출하면 채점 결과가 여기에 쌓여요.'); return; }
+  el.innerHTML = history.map(h=>{
+    const pct = h.total ? Math.round(h.score / h.total * 100) : h.score;
+    const good = pct >= 80, bad = pct < 60;
+    const bg = good ? 'var(--good-tint)' : (bad ? 'var(--bad-tint)' : 'var(--warn-tint)');
+    const fg = good ? 'var(--good)' : (bad ? 'var(--bad)' : 'var(--warn)');
+    const clickArg = forName ? `'${h.id}','${forName}'` : `'${h.id}'`;
+    return `<div class="card" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; cursor:pointer;" onclick="openSubmissionDetail(${clickArg})">
+      <div>
+        <div style="font-size:14px; font-weight:600;">${h.title}</div>
+        <div style="font-size:12px; color:var(--muted); margin-top:2px;">${h.week} · ${h.date}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="chip" style="font-size:14px; background:${bg}; color:${fg};">${h.countMode ? (h.score + '/' + h.total + '개') : (h.score + '점')}</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 5L16 12L9 19" stroke="#C99B78" stroke-width="2.6" stroke-linecap="square"/></svg>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function drawChart(svgId, labelsId, chartData){
+  const svg = document.getElementById(svgId);
+  const labelsEl = document.getElementById(labelsId);
+  if(!chartData || chartData.length === 0){
+    svg.innerHTML = '<text x="163" y="73" font-size="12" fill="#906C59" text-anchor="middle">아직 데이터가 없어요</text>';
+    labelsEl.innerHTML = '';
+    return;
+  }
+  const W = 326, left = 26, right = 326, top = 10, bottom = 120;
+  const n = chartData.length;
+  const step = n > 1 ? (right - left - 20) / (n - 1) : 0;
+  const pts = chartData.map((d,i)=>{
+    const x = left + 14 + step*i;
+    const y = top + (100 - Math.max(0,Math.min(100,d.score)))/100 * (bottom-top);
+    return {x,y,score:d.score};
+  });
+  const path = pts.map((p,i)=> (i===0?'M':'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+  const lineColor = svgId === 'parentChart' ? '#DE7466' : '#5F9A70';
+  let svgHtml = `
+    <line x1="${left}" y1="10" x2="${right}" y2="10" stroke="#E6D3C2" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <line x1="${left}" y1="65" x2="${right}" y2="65" stroke="#E6D3C2" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <line x1="${left}" y1="120" x2="${right}" y2="120" stroke="#4A2F23" stroke-width="2"/>
+    <line x1="${left}" y1="6" x2="${left}" y2="120" stroke="#4A2F23" stroke-width="2"/>
+    <text x="0" y="14" font-size="10" fill="#906C59">100</text>
+    <text x="6" y="69" font-size="10" fill="#906C59">50</text>
+    <text x="10" y="124" font-size="10" fill="#906C59">0</text>
+    <path class="chart-line" pathLength="1" d="${path}" fill="none" stroke="${lineColor}" stroke-width="3.5" stroke-linecap="square" stroke-linejoin="miter"/>
+  `;
+  pts.forEach((p,i)=> svgHtml += `<circle class="chart-point" style="animation-delay:${180+i*90}ms" cx="${p.x}" cy="${p.y}" r="4.5" fill="#F2C14E" stroke="#4A2F23" stroke-width="2"><title>${p.score}점</title></circle>`);
+  svg.innerHTML = svgHtml;
+  labelsEl.innerHTML = chartData.map(d=>`<span style="font-size:10.5px; color:var(--muted); font-weight:700;">${d.week}</span>`).join('');
+}
+
+/* ===================== 학부모 화면 ===================== */
+function renderParent(dash){
+  document.getElementById('parentName').textContent = USER.name + ' 학생';
+
+  const card = document.getElementById('parentAssignmentCard');
+  if(dash.current){
+    const submitted = dash.current.submitted;
+    card.innerHTML = `
+      <div>
+        <div style="font-size:11.5px; color:var(--muted);">이번 주 · ${dash.current.week}</div>
+        <div style="font-size:14.5px; font-weight:700; margin-top:2px;">${dash.current.title}</div>
+      </div>
+      <span class="chip" style="color:${submitted?'var(--good)':'var(--warn)'}; background:${submitted?'var(--good-tint)':'var(--warn-tint)'};">${submitted?'제출완료':'아직 미제출'}</span>
+    `;
+  } else {
+    card.innerHTML = emptyState_('등록된 과제가 없어요');
+  }
+
+  renderStreakBadges('parent', dash.streak);
+
+  const missedNote = document.getElementById('parentMissedNote');
+  const missed = dash.missed || [];
+  if(missed.length){
+    missedNote.style.display = 'block';
+    missedNote.textContent = `미제출 과제 ${missed.length}건 있어요: ${missed.map(m=>m.week).join(', ')} (학생 화면에서 바로 제출할 수 있어요)`;
+  } else {
+    missedNote.style.display = 'none';
+  }
+
+  renderClassLog('parent', dash.classLog);
+  renderAssignmentHistory('parent', dash.assignmentHistory, dash);
+  drawChart('parentChart', 'parentChartLabels', dash.chart);
+
+  const commentCard = document.getElementById('parentCommentCard');
+  if(dash.latestComment){
+    commentCard.style.display = 'flex';
+    document.getElementById('parentCommentWeek').textContent = dash.latestComment.week + ' 총평';
+    document.getElementById('parentCommentDate').textContent = dash.latestComment.date;
+    document.getElementById('parentCommentText').textContent = dash.latestComment.text;
+  } else {
+    commentCard.style.display = 'none';
+  }
+
+  renderHistoryList('parentHistory', dash.history);
+  showScreen('view-parent');
+}
+
+/* ===================== 관리자 대시보드 ===================== */
+function loadAdmin(keepTab){
+  google.script.run
+    .withSuccessHandler(overview=>{ ADMIN_OVERVIEW = overview; if(!keepTab || ADMIN_ACTIVE >= overview.classes.length) ADMIN_ACTIVE = 0; renderAdmin(); loadAdminWarnings_(); loadLectureStatus_(); })
+    .withFailureHandler(err=> alert('불러오기 오류: ' + err.message))
+    .getAdminOverview();
+}
+
+/* ---- 정답표 반 이름 경고 / 문항정답률 내보내기 ---- */
+let ADMIN_WARN_ITEMS = [];
+function escH_(v){ return String(v==null?'':v).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function loadAdminWarnings_(){
+  google.script.run
+    .withSuccessHandler(renderAdminWarnings_)
+    .withFailureHandler(()=>{})
+    .getQuestionSheetWarnings();
+}
+
+function renderAdminWarnings_(res){
+  const box = document.getElementById('adminClassWarn');
+  ADMIN_WARN_ITEMS = (res && res.warnings) || [];
+  if(!ADMIN_WARN_ITEMS.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  const opts = ((res && res.classes) || []).map(c=>`<option value="${escH_(c)}">${escH_(c)}</option>`).join('');
+  box.style.display = 'flex';
+  box.innerHTML = `<div style="font-size:14px; font-weight:700; color:#8A5A12;">⚠️ 정답표의 반 이름 확인이 필요해요</div>
+    <div style="font-size:12.5px; color:#8A5A12; line-height:1.55;">아래 반 이름이 채점기(학생명단)의 반 이름과 달라요. 맞는 반을 골라 적용하면 정답표의 반 열이 고쳐져요. (그 전까지는 채점은 그대로 진행돼요.)</div>` +
+    ADMIN_WARN_ITEMS.map((w,i)=>`<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:13px;">
+      <span><b>${escH_(w.sheet)}</b> · "${escH_(w.value)}" (${w.rows}행)</span>
+      <select id="warnSel_${i}" style="padding:7px 10px; border-radius:10px; border:1.5px solid var(--border); font-size:13px;"><option value="">반 선택…</option>${opts}</select>
+      <button class="btn" style="width:auto; padding:7px 14px; font-size:12.5px;" onclick="applyClassFix_(${i})">적용</button>
+    </div>`).join('');
+}
+
+function applyClassFix_(i){
+  const w = ADMIN_WARN_ITEMS[i];
+  const to = document.getElementById('warnSel_'+i).value;
+  if(!w || !to){ alert('바꿀 반을 선택해주세요.'); return; }
+  google.script.run
+    .withSuccessHandler(()=> loadAdminWarnings_())
+    .withFailureHandler(err=> alert('오류: '+err.message))
+    .fixQuestionClass({ sheet: w.sheet, from: w.value, to });
+}
+
+function setExportMsg_(t){
+  const el = document.getElementById('adminExportMsg');
+  el.textContent = t || ''; el.style.display = t ? 'block' : 'none';
+}
+
+function downloadBlob_(blob, filename){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+function csvCell_(v){
+  v = String(v==null?'':v);
+  return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v;
+}
+
+function exportItemStats(fmt){
+  const kind = document.getElementById('exportKind').value;
+  const label = {stats:'문항정답률', dist:'선지분포', items:'학생문항결과', classes:'반목록'}[kind] || '내보내기';
+  setExportMsg_('불러오는 중…');
+  google.script.run
+    .withSuccessHandler(t=>{
+      if(!t.rows.length){ setExportMsg_('아직 내보낼 데이터가 없어요. 학생이 제출하면 쌓이고, 이전 제출분은 「다시 계산」으로 채울 수 있어요.'); return; }
+      const stamp = new Date().toISOString().slice(0,10);
+      if(fmt === 'csv'){
+        const csv = [t.headers].concat(t.rows).map(r=>r.map(csvCell_).join(',')).join('\r\n');
+        downloadBlob_(new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'}), label+'_'+stamp+'.csv');
+        setExportMsg_('CSV를 내려받았어요 ('+t.rows.length+'행).');
+        return;
+      }
+      ensureXlsx_(()=>{
+        const ws = XLSX.utils.aoa_to_sheet([t.headers].concat(t.rows));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, label);
+        XLSX.writeFile(wb, label+'_'+stamp+'.xlsx');
+        setExportMsg_('엑셀 파일을 내려받았어요 ('+t.rows.length+'행).');
+      }, ()=> setExportMsg_('엑셀 라이브러리를 불러오지 못했어요. CSV로 받아주세요.'));
+    })
+    .withFailureHandler(err=> setExportMsg_('오류: '+err.message))
+    .getExportTable(kind);
+}
+
+// SheetJS(엑셀 읽기/쓰기)는 필요할 때만 불러온다.
+function ensureXlsx_(ok, fail){
+  if(window.XLSX){ ok(); return; }
+  const sc = document.createElement('script');
+  sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  sc.onload = ok;
+  sc.onerror = fail;
+  document.head.appendChild(sc);
+}
+
+function setToolMsg_(t){
+  const el = document.getElementById('adminToolMsg');
+  el.textContent = t || ''; el.style.display = t ? 'block' : 'none';
+}
+
+/* ---- 정답표 올리기 ---- */
+let IMPORT_GROUPS = [];
+let IMPORT_MODE = 'file';   // 'paste' = 빈 줄부터 추가(덮어쓰기 없음), 'file' = 같은 주차 덮어쓰기
+let PASTE_TIMER = null, PASTE_LAST = '';
+
+function openImportScreen(){
+  IMPORT_GROUPS = [];
+  IMPORT_MODE = 'file';
+  PASTE_LAST = '';
+  document.getElementById('importPaste').value = '';
+  document.getElementById('importFile').value = '';
+  document.getElementById('importPreview').innerHTML = '';
+  document.getElementById('importGoBtn').style.display = 'none';
+  setImportMsg_('');
+  showScreen('view-admin-import');
+}
+
+function setImportMsg_(t){
+  const el = document.getElementById('importMsg');
+  el.textContent = t || ''; el.style.display = t ? 'block' : 'none';
+}
+
+/* 탭으로 나뉜 표(엑셀·시트·출제기 복사 형식). 따옴표로 감싼 칸 안의 줄바꿈·탭도 그대로 읽는다. */
+function parseTsv_(text){
+  const rows = []; let row = [], cell = '', i = 0, q = false;
+  text = String(text || '').replace(/\r\n?/g, '\n');
+  while(i < text.length){
+    const ch = text[i];
+    if(q){
+      if(ch === '"'){ if(text[i+1] === '"'){ cell += '"'; i += 2; continue; } q = false; i++; continue; }
+      cell += ch; i++; continue;
+    }
+    if(ch === '"' && cell === ''){ q = true; i++; continue; }
+    if(ch === '\t'){ row.push(cell); cell = ''; i++; continue; }
+    if(ch === '\n'){ row.push(cell); rows.push(row); row = []; cell = ''; i++; continue; }
+    cell += ch; i++;
+  }
+  if(cell !== '' || row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(c => String(c).trim() !== ''));
+}
+
+function onImportPaste_(){
+  clearTimeout(PASTE_TIMER);
+  PASTE_TIMER = setTimeout(()=>{
+    const text = document.getElementById('importPaste').value;
+    if(text === PASTE_LAST) return;
+    PASTE_LAST = text;
+    if(!text.trim()){ IMPORT_GROUPS = []; document.getElementById('importPreview').innerHTML = ''; document.getElementById('importGoBtn').style.display = 'none'; setImportMsg_(''); return; }
+    const rows = parseTsv_(text);
+    if(!rows.length || rows.every(r => r.length < 3)){ setImportMsg_('표 형식이 아니에요. 출제기에서 [복사]한 내용을 그대로 붙여넣어 주세요.'); return; }
+    IMPORT_MODE = 'paste';
+    document.getElementById('importFile').value = '';
+    setImportMsg_('검사하는 중…');
+    google.script.run
+      .withSuccessHandler(res=>{ setImportMsg_(''); renderImportPreview_(res); })
+      .withFailureHandler(err=> setImportMsg_('오류: '+err.message))
+      .previewPastedKey({ rows });
+  }, 250);
+}
+
+function onImportFile(ev){
+  const f = ev.target.files && ev.target.files[0];
+  if(!f) return;
+  IMPORT_MODE = 'file';
+  document.getElementById('importPaste').value = ''; PASTE_LAST = '';
+  setImportMsg_('파일을 읽는 중…');
+  ensureXlsx_(()=>{
+    const rd = new FileReader();
+    rd.onerror = ()=> setImportMsg_('파일을 읽지 못했어요.');
+    rd.onload = e=>{
+      let sheets;
+      try{
+        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+        sheets = wb.SheetNames.map(n=>({ name:n, rows: XLSX.utils.sheet_to_json(wb.Sheets[n], {header:1, defval:'', raw:true}) }));
+      }catch(err){ setImportMsg_('엑셀 파일을 해석하지 못했어요: '+err.message); return; }
+      setImportMsg_('검사하는 중…');
+      google.script.run
+        .withSuccessHandler(res=>{ setImportMsg_(''); renderImportPreview_(res); })
+        .withFailureHandler(err=> setImportMsg_('오류: '+err.message))
+        .previewAnswerKey({ sheets });
+    };
+    rd.readAsArrayBuffer(f);
+  }, ()=> setImportMsg_('엑셀 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인해주세요.'));
+}
+
+function renderImportPreview_(res){
+  IMPORT_GROUPS = res.groups || [];
+  const box = document.getElementById('importPreview');
+  const goBtn = document.getElementById('importGoBtn');
+  if(!IMPORT_GROUPS.length){ box.innerHTML = emptyState_('읽을 문항이 없어요', '정답표 엑셀인지, 2행부터 문항이 있는지 확인해주세요.'); goBtn.style.display = 'none'; return; }
+  const opts = (res.classes||[]).map(c=>`<option value="${escH_(c)}">${escH_(c)}</option>`).join('');
+  box.innerHTML = IMPORT_GROUPS.map((g,i)=>`
+    <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:8px; ${g.error?'border:1.5px solid #F0CEC1;':''}">
+      <div style="font-size:14.5px; font-weight:700;">${escH_(g.title)} <span style="font-weight:500; color:var(--muted); font-size:12.5px;">· ${escH_(g.week||'(주차 없음)')}</span></div>
+      <div style="font-size:12.5px; color:var(--muted);">${g.rowCount}문항${g.subjective ? ' (서술형 '+g.subjective+'문항은 OMR 채점 제외)' : ''} · 선택지 ${g.choices}개${g.gValue ? ' · 정답표의 반: '+escH_(g.gValue) : ' · 정답표의 반: (비어 있음)'}</div>
+      ${g.warnings.map(w=>`<div style="font-size:12.5px; color:var(--bad); line-height:1.5;">⚠️ ${escH_(w)}</div>`).join('')}
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:13px;">
+        <span>대상(반 또는 학년)</span>
+        <select id="impSel_${i}" style="padding:7px 10px; border-radius:10px; border:1.5px solid var(--border); font-size:13px;">
+          <option value="">선택…</option>${opts}
+        </select>
+      </div>
+    </div>`).join('');
+  IMPORT_GROUPS.forEach((g,i)=>{ if(g.target){ document.getElementById('impSel_'+i).value = g.target; } });
+  goBtn.textContent = IMPORT_MODE === 'paste' ? '빈 줄부터 추가하기' : '반영하기';
+  goBtn.style.display = IMPORT_GROUPS.some(g=>g.error) ? 'none' : 'block';
+  if(IMPORT_GROUPS.some(g=>g.error)) setImportMsg_(IMPORT_MODE === 'paste' ? '반영할 수 없는 묶음이 있어요. 위 안내를 확인해 주세요.' : '오류가 있는 묶음이 있어 반영할 수 없어요. 엑셀을 고쳐서 다시 올려주세요.');
+  else if(IMPORT_MODE === 'paste') setImportMsg_('문제해설 시트의 마지막 줄 다음부터 추가돼요. 기존 줄은 바뀌지 않아요.');
+}
+
+function doImport_(){
+  for(let i=0;i<IMPORT_GROUPS.length;i++){
+    const v = document.getElementById('impSel_'+i).value;
+    if(!v){ alert('"'+IMPORT_GROUPS[i].title+'"의 대상(반 또는 학년)을 선택해주세요.'); return; }
+    IMPORT_GROUPS[i].target = v;
+  }
+  const paste = IMPORT_MODE === 'paste';
+  if(!confirm(paste ? '문제해설 시트의 빈 줄부터 추가합니다. 기존 줄은 바뀌지 않아요. 추가할까요?' : '같은 주차·대상의 기존 문항이 있으면 새 내용으로 바뀝니다. 반영할까요?')) return;
+  const btn = document.getElementById('importGoBtn');
+  const label = paste ? '빈 줄부터 추가하기' : '반영하기';
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>반영 중...';
+  google.script.run
+    .withSuccessHandler(msg=>{
+      btn.disabled = false; btn.textContent = label;
+      goBack();
+      setToolMsg_((paste ? '정답표를 빈 줄부터 추가했어요.\n' : '정답표를 반영했어요.\n') + msg);
+      google.script.run.withSuccessHandler(ov=>{ ADMIN_OVERVIEW = ov; renderAdmin(); loadAdminWarnings_(); }).getAdminOverview();
+    })
+    .withFailureHandler(err=>{ btn.disabled = false; btn.textContent = label; alert('오류: '+err.message); })
+    [paste ? 'appendAnswerKey' : 'importAnswerKey']({ groups: IMPORT_GROUPS });
+}
+
+/* ---- 재채점 ---- */
+function regradePrompt_(){
+  const active = ADMIN_OVERVIEW && ADMIN_OVERVIEW.classes[ADMIN_ACTIVE];
+  const wk = prompt('다시 채점할 주차를 입력하세요.\n(정답표를 고친 뒤, 이미 제출된 건을 새 정답으로 다시 채점해요)', active && active.currentWeek ? active.currentWeek : '');
+  if(!wk) return;
+  if(!confirm('"'+wk+'" 주차의 모든 제출을 현재 정답표로 다시 채점할까요?')) return;
+  setToolMsg_('다시 채점하는 중… (제출이 많으면 시간이 걸려요)');
+  google.script.run
+    .withSuccessHandler(msg=>{ setToolMsg_(msg); google.script.run.withSuccessHandler(ov=>{ ADMIN_OVERVIEW = ov; renderAdmin(); }).getAdminOverview(); })
+    .withFailureHandler(err=> setToolMsg_('오류: '+err.message))
+    .regradeAssignment({ week: wk.trim() });
+}
+
+/* ---- 서술형 점수 입력 ---- */
+let SUBJ_DATA = null;
+
+function openSubjScreen(){
+  const active = ADMIN_OVERVIEW && ADMIN_OVERVIEW.classes[ADMIN_ACTIVE];
+  if(!active){ alert('반을 먼저 선택해주세요.'); return; }
+  setToolMsg_('불러오는 중…');
+  google.script.run
+    .withSuccessHandler(d=>{
+      setToolMsg_('');
+      if(d.none){ setToolMsg_(active.label + ': ' + d.message); return; }
+      SUBJ_DATA = d;
+      renderSubj_();
+      showScreen('view-admin-subj');
+    })
+    .withFailureHandler(err=> setToolMsg_('오류: '+err.message))
+    .getSubjectiveSheet({ cls: active.label });
+}
+
+function renderSubj_(){
+  const d = SUBJ_DATA;
+  document.getElementById('subjSub').textContent = d.cls + ' · ' + d.week + ' · ' + d.title;
+  const qh = d.questions.map(q=>`<th style="padding:8px 10px; text-align:center; font-size:12.5px;">${q.qnum}번<div style="font-weight:500; color:var(--muted); font-size:11px;">배점 ${q.pts}</div></th>`).join('');
+  const answers = d.questions.map(q=>`<div style="font-size:12.5px; line-height:1.55;"><b>${q.qnum}번 모범 답안</b> · ${escH_(q.answer)}</div>`).join('');
+  const rows = d.students.map((s,si)=>`<tr style="border-top:1px solid var(--border);">
+      <td style="padding:8px 10px; font-size:13.5px; font-weight:600; white-space:nowrap;">${escH_(s.name)}${s.submitted ? '' : ' <span style="font-weight:500; color:var(--bad); font-size:11px;">미제출</span>'}</td>
+      ${d.questions.map(q=>`<td style="padding:6px 8px; text-align:center;"><input type="number" min="0" max="${q.pts}" step="0.5" id="sj_${si}_${q.qnum}" value="${s.scores[q.qnum]!==undefined ? s.scores[q.qnum] : ''}" style="width:64px; padding:6px 8px; border-radius:8px; border:1.5px solid var(--border); font-size:13px; text-align:center;"></td>`).join('')}
+    </tr>`).join('');
+  document.getElementById('subjBody').innerHTML = `
+    <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:8px;">
+      <div style="font-size:12.5px; color:var(--muted); line-height:1.55;">종이 답안을 보고 점수를 입력하세요. 칸을 비우면 점수가 지워져요. 입력하면 학생의 총점에 합산되고, 문항정답률에는 점수를 입력한 학생만 반영돼요(만점이면 정답).</div>
+      ${answers}
+    </div>
+    <div class="card" style="padding:8px 6px; overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse;"><thead><tr><th style="text-align:left; padding:8px 10px; font-size:12.5px;">학생</th>${qh}</tr></thead><tbody>${rows}</tbody></table>
+    </div>`;
+  document.getElementById('subjSaveBtn').style.display = 'block';
+}
+
+function saveSubj_(){
+  const d = SUBJ_DATA;
+  const entries = [];
+  d.students.forEach((s,si)=> d.questions.forEach(q=>{
+    entries.push({ name: s.name, qnum: q.qnum, score: document.getElementById('sj_'+si+'_'+q.qnum).value });
+  }));
+  const btn = document.getElementById('subjSaveBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>저장 중...';
+  google.script.run
+    .withSuccessHandler(msg=>{
+      btn.disabled = false; btn.textContent = '저장하기';
+      goBack();
+      setToolMsg_(msg);
+      google.script.run.withSuccessHandler(ov=>{ ADMIN_OVERVIEW = ov; renderAdmin(); }).getAdminOverview();
+    })
+    .withFailureHandler(err=>{ btn.disabled = false; btn.textContent = '저장하기'; alert('오류: '+err.message); })
+    .saveSubjectiveScores({ cls: d.cls, week: d.week, entries });
+}
+
+function rebuildItemStats_(){
+  if(!confirm('지금까지의 제출 기록으로 문항정답률을 다시 계산할까요?')) return;
+  setExportMsg_('계산 중…');
+  google.script.run
+    .withSuccessHandler(msg=> setExportMsg_(msg))
+    .withFailureHandler(err=> setExportMsg_('오류: '+err.message))
+    .rebuildItemStats();
+}
+
+function sparkPoints_(trend){
+  if(!trend || !trend.length) return '';
+  const w=100, h=30, pad=4;
+  const min = Math.min(Math.min.apply(null, trend), 40);
+  const max = Math.max(Math.max.apply(null, trend), 100);
+  const range = (max-min) || 1;
+  const n = trend.length;
+  return trend.map((v,i)=>{
+    const x = pad + (n>1 ? (i*(w-2*pad))/(n-1) : (w-2*pad)/2);
+    const y = h-pad-((v-min)/range)*(h-2*pad);
+    return x.toFixed(1)+','+y.toFixed(1);
+  }).join(' ');
+}
+
+// 활성 반의 "이번 주 제출률"을 도넛 형태의 SVG로 그린다.
+function drawDonut_(submitted, total){
+  const svg = document.getElementById('adminDonut');
+  const pctEl = document.getElementById('adminDonutPct');
+  const r = 30, cx = 36, cy = 36, circumference = 2*Math.PI*r;
+  const pct = total > 0 ? submitted/total : 0;
+  const dash = circumference * pct;
+    const color = pct >= 0.8 ? '#5F9A70' : (pct < 0.5 ? '#DE7466' : '#D9A23A');
+  svg.innerHTML = `
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#EAD9C8" stroke-width="9"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="9"
+      stroke-dasharray="${dash.toFixed(1)} ${circumference.toFixed(1)}" stroke-linecap="butt"
+      transform="rotate(-90 ${cx} ${cy})"/>
+  `;
+  pctEl.textContent = Math.round(pct*100) + '%';
+  pctEl.style.color = color;
+}
+
+function renderAdmin(){
+  const ov = ADMIN_OVERVIEW;
+  document.getElementById('adminTotalCount').textContent = ov.totalAllStudents;
+
+  document.getElementById('adminTabs').innerHTML = ov.classes.map((c,i)=>{
+    const active = i === ADMIN_ACTIVE;
+    return `<button class="admtab${active?' active':''}" onclick="pickAdminClass(${i})">
+      ${c.label}
+      ${c.missingCount>0 ? `<span class="admbadge${active?' active':''}">${c.missingCount}</span>` : ''}
+    </button>`;
+  }).join('');
+
+  const active = ov.classes[ADMIN_ACTIVE];
+  const missBox = document.getElementById('adminMissingBox');
+  const donutCard = document.getElementById('adminDonutCard');
+  const list = document.getElementById('adminStudentList');
+  if(!active){
+    missBox.style.display = 'none';
+    donutCard.style.display = 'none';
+    document.getElementById('adminKpis').style.display = 'none';
+    document.getElementById('adminListMeta').textContent = '';
+    list.innerHTML = emptyState_('학생명단에 반 정보가 있는 학생이 없어요', '학생명단 시트에서 학년/반을 입력해주세요.');
+    showScreen('view-admin');
+    return;
+  }
+
+  donutCard.style.display = 'flex';
+  renderAdminKpis_(active);
+  document.getElementById('adminDonutLabel').textContent = active.label + (active.currentWeek ? ' · '+active.currentWeek+' 제출률' : ' 제출률');
+  drawDonut_(active.submittedCount, active.totalStudents);
+  renderLectureCard_();
+
+  if(active.missingCount > 0){
+    missBox.style.display = 'flex';
+    document.getElementById('adminMissingText').innerHTML = `<b>${active.label}</b> ${active.currentWeek ? active.currentWeek+' ' : ''}미제출 ${active.missingCount}명 — ${active.missingNames}`;
+  } else {
+    missBox.style.display = 'none';
+  }
+
+  document.getElementById('adminListTitle').textContent = active.label + ' 학생 목록';
+  document.getElementById('adminListMeta').textContent = (active.currentWeek ? active.currentWeek+' · ' : '') + active.submittedCount + '/' + active.totalStudents + '명 제출 · 최근 점수 추이';
+
+  list.innerHTML = active.students.map(s=>{
+    const latest = s.trend.length ? s.trend[s.trend.length-1] : null;
+    const latestColor = !s.submitted ? 'var(--bad)' : (latest>=80?'var(--good)':(latest<60?'var(--bad)':'var(--ink)'));
+    return `<div class="admrow" style="background:${s.submitted?'transparent':'var(--bad-tint)'};" onclick="adminOpenDetail('${s.name}')">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <img class="mini-face" src="${DAMI.face(!s.submitted ? 'sad' : (latest>=90 ? 'proud' : (latest>=80 ? 'confident' : 'default')))}" alt="">
+        <div>
+          <div style="font-size:14px; font-weight:600;">${s.name}</div>
+          <div style="font-size:11.5px; margin-top:2px; color:${s.submitted?'var(--muted)':'var(--bad)'};">${s.submitted?'이번 주 제출 완료':'이번 주 미제출'}</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:18px;">
+        <svg width="90" height="28" viewBox="0 0 100 30"><polyline points="${sparkPoints_(s.trend)}" fill="none" stroke="#5F9A70" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"/></svg>
+        <div style="width:48px; text-align:right; font-size:15px; font-weight:800; color:${latestColor};">${latest!=null ? latest+'점' : '-'}</div>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 5L16 12L9 19" stroke="#C99B78" stroke-width="2.6" stroke-linecap="square"/></svg>
+      </div>
+    </div>`;
+  }).join('');
+
+  showScreen('view-admin');
+}
+
+// 활성 반의 전체·제출·미제출·최근 평균 (모두 getAdminOverview 결과에서 계산)
+function renderAdminKpis_(active){
+  const box = document.getElementById('adminKpis');
+  if(!box) return;
+  const latest = active.students.map(s => s.trend && s.trend.length ? Number(s.trend[s.trend.length-1]) : null).filter(v => v != null && !isNaN(v));
+  const avg = latest.length ? (latest.reduce((a,b)=>a+b,0) / latest.length) : null;
+  box.innerHTML = `
+    <div class="kpi"><small>전체 학생</small><strong>${active.totalStudents}</strong></div>
+    <div class="kpi"><small>제출 완료</small><strong style="color:var(--good);">${active.submittedCount}</strong></div>
+    <div class="kpi"><small>미제출</small><strong style="color:var(--bad);">${active.missingCount}</strong></div>
+    <div class="kpi"><small>최근 평균 점수</small><strong>${avg == null ? '-' : (Math.round(avg*10)/10)}</strong></div>`;
+  box.style.display = 'grid';
+}
+
+function pickAdminClass(i){ ADMIN_ACTIVE = i; renderAdmin(); }
+
+function adminOpenDetail(name){
+  google.script.run
+    .withSuccessHandler(dash=>{ ADMIN_DETAIL_NAME = name; renderAdminDetail(name, dash); })
+    .withFailureHandler(err=> alert('불러오기 오류: ' + err.message))
+    .getDashboard(name);
+}
+
+function renderAdminDetail(name, dash){
+  document.getElementById('admDetailName').textContent = name + ' 학생';
+
+  const card = document.getElementById('admDetailAssignCard');
+  if(dash.current){
+    const submitted = dash.current.submitted;
+    card.innerHTML = `
+      <div>
+        <div style="font-size:11.5px; color:var(--muted);">이번 주 · ${dash.current.week}</div>
+        <div style="font-size:14.5px; font-weight:700; margin-top:2px;">${dash.current.title}</div>
+      </div>
+      <span class="chip" style="color:${submitted?'var(--good)':'var(--warn)'}; background:${submitted?'var(--good-tint)':'var(--warn-tint)'};">${submitted?'제출완료':'아직 미제출'}</span>
+    `;
+  } else {
+    card.innerHTML = emptyState_('등록된 과제가 없어요');
+  }
+
+  const missedNote = document.getElementById('admDetailMissedNote');
+  const missed = dash.missed || [];
+  if(missed.length){
+    missedNote.style.display = 'block';
+    missedNote.textContent = `미제출 과제 ${missed.length}건 있어요: ${missed.map(m=>m.week).join(', ')}`;
+  } else {
+    missedNote.style.display = 'none';
+  }
+
+  renderClassLog('adm', dash.classLog);
+  renderAssignmentHistory('adm', dash.assignmentHistory, dash, name);
+  drawChart('admDetailChart', 'admDetailChartLabels', dash.chart);
+
+  const commentCard = document.getElementById('admDetailCommentCard');
+  if(dash.latestComment){
+    commentCard.style.display = 'flex';
+    document.getElementById('admDetailCommentWeek').textContent = dash.latestComment.week + ' 총평';
+    document.getElementById('admDetailCommentDate').textContent = dash.latestComment.date;
+    document.getElementById('admDetailCommentText').textContent = dash.latestComment.text;
+  } else {
+    commentCard.style.display = 'none';
+  }
+
+  renderHistoryList('admDetailHistory', dash.history, name);
+  showScreen('view-admin-detail');
+}
+
+/* ===================== OMR 서식 인쇄 ===================== */
+function openTemplate(){
+  if(!ASSIGNMENT){ alert('과제 정보가 없습니다.'); return; }
+  drawTemplate(ASSIGNMENT);
+  showScreen('view-template');
+}
+
+function roundRectPath_(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+// 지정한 폭을 넘으면 "…"으로 줄인다 (긴 과제명이 이름 칸을 침범하지 않도록).
+function fitText_(ctx, text, maxWidth){
+  if(ctx.measureText(text).width <= maxWidth) return text;
+  let t = text;
+  while(t.length > 1 && ctx.measureText(t+'…').width > maxWidth) t = t.slice(0, -1);
+  return t + '…';
+}
+
+function drawTemplate(assign){
+  const cv = document.getElementById('templateCanvas');
+  const W = 1240, H = 1754;
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,W,H);
+
+  // 인식 기준선: 답안지 전체를 감싸는 굵은 테두리 + 네 모서리 보강 사각형.
+  // (예전에는 네 귀퉁이에 작은 사각형만 따로 찍었는데, 사진이 기울거나 그림자가 지면
+  //  4개를 각각 독립적으로 찾다가 하나라도 놓치기 쉬웠다. 테두리로 하나의 큰 덩어리를
+  //  만들면 화면 전체에서 "가장 큰 검은 덩어리"를 찾는 방식으로 훨씬 안정적으로 인식된다.)
+  const M = 70, marker = 44, BORDER = 14;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(M, M, W-2*M, BORDER);              // 위
+  ctx.fillRect(M, H-M-BORDER, W-2*M, BORDER);      // 아래
+  ctx.fillRect(M, M, BORDER, H-2*M);               // 왼쪽
+  ctx.fillRect(W-M-BORDER, M, BORDER, H-2*M);      // 오른쪽
+  [[M,M],[W-M-marker,M],[M,H-M-marker],[W-M-marker,H-M-marker]].forEach(([x,y])=>ctx.fillRect(x,y,marker,marker));
+
+  // ---- 여기서부터는 순수 장식 요소다. 인식(findFrameBlob_/readBubbles)은 위의 굵은 검은
+  // 테두리와 버블 원 안쪽만 보므로, 아주 옅은 색(카드 배경)이나 테두리에 닿지 않는 작은
+  // 요소는 인식에 전혀 영향을 주지 않는다. ----
+  const ACCENT = '#8E5F49', ACCENT_LINE = '#C98F70', ACCENT_TINT = '#F7E8DC', MUTED = '#8D7D72';
+  const innerLeft = M+marker+30, innerRight = W-M-marker-30;
+  const headerTop = M+marker+18;
+  const nameBoxW = 200, nameBoxH = 60;
+  const nameBoxX = innerRight - nameBoxW, nameBoxY = headerTop + 74;
+
+  // 헤더 카드(옅은 배경) — 버블 인식 임계값보다 훨씬 밝아 인식에 영향 없음
+  const headerCardY = headerTop - 22, headerCardH = (nameBoxY+nameBoxH+14) - headerCardY;
+  roundRectPath_(ctx, innerLeft-16, headerCardY, (innerRight-innerLeft)+32, headerCardH, 14);
+  ctx.fillStyle = ACCENT_TINT; ctx.fill();
+
+  // 가운데 제목 "［ N주차 과제 ］" — 문서(답안지 인쇄 영역) 전체 가로폭 기준으로 정중앙 정렬
+  const titleCenterX = (innerLeft + innerRight)/2;
+  const titleMaxW = (innerRight-innerLeft) - 40;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = ACCENT;
+  ctx.font = 'bold 34px sans-serif';
+  ctx.fillText(fitText_(ctx, `［ ${assign.week} 과제 ］`, titleMaxW), titleCenterX, headerTop+30);
+  ctx.font = '17px sans-serif';
+  ctx.fillStyle = MUTED;
+  ctx.fillText(fitText_(ctx, assign.title, titleMaxW), titleCenterX, headerTop+62);
+  ctx.textAlign = 'left';
+
+  // 이름 쓰는 칸 (제목/부제 아래, 우측 정렬)
+  roundRectPath_(ctx, nameBoxX, nameBoxY, nameBoxW, nameBoxH, 10);
+  ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.strokeStyle = ACCENT_LINE; ctx.lineWidth = 2;
+  roundRectPath_(ctx, nameBoxX, nameBoxY, nameBoxW, nameBoxH, 10); ctx.stroke();
+  ctx.fillStyle = ACCENT; ctx.font = 'bold 14px sans-serif';
+  ctx.fillText('이 름', nameBoxX+14, nameBoxY+22);
+  ctx.strokeStyle = '#E9DDD2'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(nameBoxX+14, nameBoxY+44); ctx.lineTo(nameBoxX+nameBoxW-14, nameBoxY+44); ctx.stroke();
+
+  // 헤더 아래 포인트 라인 + 중앙 장식점 + 작성 안내 문구
+  const lineY = headerCardY + headerCardH + 14;
+  ctx.strokeStyle = ACCENT_LINE; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(innerLeft, lineY); ctx.lineTo(innerRight, lineY); ctx.stroke();
+  ctx.fillStyle = ACCENT_LINE;
+  ctx.beginPath(); ctx.arc((innerLeft+innerRight)/2, lineY, 4, 0, Math.PI*2); ctx.fill();
+
+  ctx.font = '13px sans-serif'; ctx.fillStyle = MUTED; ctx.textAlign = 'left';
+  ctx.fillText('보기 번호 원 안을 벗어나지 않게 진하게 칠해주세요.', innerLeft, lineY+22);
+
+  const gridTop = lineY+46, gridBottom = H-M-marker-30, gridLeft = innerLeft, gridRight = innerRight;
+  const count = assign.count, choices = assign.choices;
+  const cols = count > 25 ? 2 : 1;
+  const rowsPerCol = Math.ceil(count/cols);
+  const colW = (gridRight-gridLeft)/cols;
+  const rowH = (gridBottom-gridTop)/rowsPerCol;
+  const bubbleR = Math.min(16, rowH*0.32);
+  const coords = [];
+
+  ctx.font = '18px sans-serif';
+  for(let q=0; q<count; q++){
+    const col = Math.floor(q/rowsPerCol), row = q % rowsPerCol;
+    const y = gridTop + row*rowH + rowH/2;
+    const xBase = gridLeft + col*colW;
+    ctx.fillStyle = '#000';
+    ctx.fillText((q+1)+'.', xBase, y+6);
+    const bubStart = xBase + 46;
+    const bubGap = Math.min(46, (colW-70)/choices);
+    const qCoord = {y: y/H, x: []};
+    for(let c=0;c<choices;c++){
+      const cx = bubStart + c*bubGap;
+      ctx.beginPath(); ctx.arc(cx, y, bubbleR, 0, Math.PI*2); ctx.stroke();
+      ctx.font = '13px sans-serif';
+      ctx.fillText(String(c+1), cx-4, y+4);
+      qCoord.x.push(cx/W);
+    }
+    coords.push(qCoord);
+  }
+  window.__templateCoords = { coords, choices: assign.choices, count: assign.count, bubbleRRatio: bubbleR/W };
+}
+
+/* ===================== 사진 선택(촬영/갤러리) ===================== */
+// 실시간 카메라 미리보기(getUserMedia)는 Apps Script 웹앱의 샌드박스 iframe 안에서
+// 카메라 권한이 막혀 동작하지 않는 경우가 많아, 기기 카메라 앱을 직접 여는
+// <input type="file" capture="environment">, 갤러리 선택은 capture 속성 없는
+// <input type="file"> 로 처리한다. (두 버튼이 각자의 input을 열도록 분리)
+function handleCapturedFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const img = new Image();
+  img.onload = ()=>{
+    const cv = document.getElementById('snapCanvas');
+    cv.width = img.width; cv.height = img.height;
+    cv.getContext('2d').drawImage(img,0,0);
+    processImage(cv);
+  };
+  img.src = URL.createObjectURL(file);
+  e.target.value = ''; // 같은 사진을 다시 선택해도 change 이벤트가 다시 발생하도록 초기화
+}
+document.getElementById('fileInputCamera').addEventListener('change', handleCapturedFile);
+document.getElementById('fileInputGallery').addEventListener('change', handleCapturedFile);
+
+/* ===================== OMR 인식 ===================== */
+function processImage(srcCanvas){
+  // 기기 카메라로 바로 찍은 사진은 해상도가 매우 크고(4000px 이상), 종이가 프레임을
+  // 꽉 채우지 않을 수도 있다. 먼저 축소한 사본에서 모서리 마커를 찾아 위치만 원본
+  // 좌표로 환산해 쓰면 더 빠르고, 아래 마커 탐색 로직도 더 안정적으로 동작한다.
+  const MAX_DIM = 1400;
+  const scale = Math.min(1, MAX_DIM / Math.max(srcCanvas.width, srcCanvas.height));
+  let workCanvas = srcCanvas;
+  if(scale < 1){
+    workCanvas = document.createElement('canvas');
+    workCanvas.width = Math.round(srcCanvas.width * scale);
+    workCanvas.height = Math.round(srcCanvas.height * scale);
+    workCanvas.getContext('2d').drawImage(srcCanvas, 0, 0, workCanvas.width, workCanvas.height);
+  }
+  const ww = workCanvas.width, wh = workCanvas.height;
+  const wImgData = workCanvas.getContext('2d').getImageData(0,0,ww,wh);
+  const wGray = toGrayscale(wImgData, ww, wh);
+
+  const smallCorners = findCorners(wGray, ww, wh);
+  if(!smallCorners || !cornersLookValid_(smallCorners, ww, wh)){
+    alert('답안지 테두리를 찾지 못했어요. 종이 테두리 전체가 사진 프레임 안에 다 들어오도록, 그림자 없이 다시 촬영해주세요. (최신 OMR 서식으로 인쇄한 답안지가 맞는지도 확인해주세요)');
+    return;
+  }
+  const corners = smallCorners.map(([x,y]) => [x/scale, y/scale]); // 원본 이미지 좌표로 환산
+
+  const W = 1240, H = 1754, M = 70;
+  // 새 서식은 테두리의 "바깥쪽 꼭짓점"이 곧 기준점이다 (findCorners가 찾는 지점과 일치).
+  const dstCorners = [
+    [M, M], [W-M, M],
+    [M, H-M], [W-M, H-M]
+  ];
+
+  const Hmat = computeHomography(corners, dstCorners);
+  const warpCanvas = document.getElementById('warpCanvas');
+  warpCanvas.width = W; warpCanvas.height = H;
+  warpImage(srcCanvas, warpCanvas, Hmat, W, H);
+
+  readBubbles(warpCanvas, W, H);
+  renderQGrid();
+  showScreen('view-confirm');
+}
+
+function toGrayscale(imgData, w, h){
+  const out = new Float32Array(w*h);
+  const d = imgData.data;
+  for(let i=0, p=0; i<d.length; i+=4, p++) out[p] = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+  return out;
+}
+
+/**
+ * 새 OMR 서식은 답안지 전체를 감싸는 굵은 테두리(+모서리 보강 사각형)가 하나로 이어진
+ * 큰 검은 덩어리를 이룬다. 이 덩어리는 종이 위에서 단연 가장 큰 연결 영역이므로,
+ * "화면 전체에서 가장 큰 검은 덩어리"를 찾기만 하면 된다 — 사분면을 나눠 따로 찾거나
+ * 4개의 독립된 작은 마커를 각각 다 찾아야 했던 이전 방식보다 훨씬 안정적이다.
+ * 그 덩어리에서 좌상단/우상단/좌하단/우하단 꼭짓점은 "x+y가 최소/최대인 점"과
+ * "x-y가 최소/최대인 점"으로 구하는데, 이 방법은 사진이 상당히 기울어져 있어도
+ * (사각형이 회전해 있어도) 안정적으로 네 꼭짓점을 잡아준다.
+ */
+function findCorners(gray, w, h){
+  const blob = findFrameBlob_(gray, w, h);
+  if(!blob) return null;
+  const s = blob.step;
+  // processImage의 dstCorners와 같은 순서: 좌상단, 우상단, 좌하단, 우하단
+  return [
+    [blob.tl[0]*s, blob.tl[1]*s],
+    [blob.tr[0]*s, blob.tr[1]*s],
+    [blob.bl[0]*s, blob.bl[1]*s],
+    [blob.br[0]*s, blob.br[1]*s]
+  ];
+}
+
+/**
+ * 다운샘플링한 그리드에서 임계값보다 어두운 픽셀들을 4-연결 플러드필로 묶어, 그중
+ * 가로·세로 폭이 화면의 상당 부분을 차지하는(=테두리로 보이는) 가장 큰 덩어리를 찾는다.
+ * 플러드필 도중 각 점의 x+y, x-y 극값을 함께 추적해서, 전체 좌표를 따로 저장하지 않고도
+ * 바로 네 꼭짓점 후보를 얻는다.
+ */
+function findFrameBlob_(gray, w, h){
+  const step = 2; // 다운샘플링 간격(성능)
+  const gw = Math.ceil(w/step), gh = Math.ceil(h/step);
+
+  let sum=0, n=0;
+  for(let gy=0; gy<gh; gy++){
+    const y = gy*step;
+    for(let gx=0; gx<gw; gx++){ sum += gray[y*w + gx*step]; n++; }
+  }
+  const mean = n ? sum/n : 255;
+  const threshold = mean*0.5;
+
+  const dark = new Uint8Array(gw*gh);
+  for(let gy=0; gy<gh; gy++){
+    const y = gy*step;
+    for(let gx=0; gx<gw; gx++){ dark[gy*gw+gx] = gray[y*w + gx*step] < threshold ? 1 : 0; }
+  }
+
+  const visited = new Uint8Array(gw*gh);
+  let best = null;
+
+  for(let gy=0; gy<gh; gy++){
+    for(let gx=0; gx<gw; gx++){
+      const idx = gy*gw+gx;
+      if(!dark[idx] || visited[idx]) continue;
+
+      const qx=[gx], qy=[gy]; let head=0;
+      visited[idx]=1;
+      let minX=gx,maxX=gx,minY=gy,maxY=gy;
+      let sumMin=Infinity, sumMax=-Infinity, diffMin=Infinity, diffMax=-Infinity;
+      let ptSumMin,ptSumMax,ptDiffMin,ptDiffMax;
+      while(head < qx.length){
+        const cx0=qx[head], cy0=qy[head]; head++;
+        if(cx0<minX)minX=cx0; if(cx0>maxX)maxX=cx0;
+        if(cy0<minY)minY=cy0; if(cy0>maxY)maxY=cy0;
+        const sVal = cx0+cy0, dVal = cx0-cy0;
+        if(sVal<sumMin){ sumMin=sVal; ptSumMin=[cx0,cy0]; }
+        if(sVal>sumMax){ sumMax=sVal; ptSumMax=[cx0,cy0]; }
+        if(dVal<diffMin){ diffMin=dVal; ptDiffMin=[cx0,cy0]; }
+        if(dVal>diffMax){ diffMax=dVal; ptDiffMax=[cx0,cy0]; }
+        const neigh = [[cx0-1,cy0],[cx0+1,cy0],[cx0,cy0-1],[cx0,cy0+1]];
+        for(let k=0;k<4;k++){
+          const nx=neigh[k][0], ny=neigh[k][1];
+          if(nx<0||ny<0||nx>=gw||ny>=gh) continue;
+          const nidx = ny*gw+nx;
+          if(dark[nidx] && !visited[nidx]){ visited[nidx]=1; qx.push(nx); qy.push(ny); }
+        }
+      }
+
+      const bboxW = maxX-minX+1, bboxH = maxY-minY+1;
+      // 테두리 후보: 가로·세로 폭이 화면의 상당 부분을 차지해야 한다 (작은 글자·버블 뭉치 제외)
+      if(bboxW < gw*0.35 || bboxH < gh*0.35) continue;
+
+      const area = bboxW*bboxH;
+      if(!best || area > best.area){
+        best = { area, step, tl: ptSumMin, br: ptSumMax, tr: ptDiffMax, bl: ptDiffMin };
+      }
+    }
+  }
+  return best;
+}
+
+/**
+ * 찾은 4개 모서리가 실제로 종이 크기만한 사각형을 이루는지 검증한다.
+ * (탐색이 그림자·배경 물체 등 엉뚱한 곳으로 쏠렸을 때, 잘못된 좌표로 계속 진행하지 않고
+ *  다시 촬영하도록 안내하기 위한 안전장치)
+ */
+function cornersLookValid_(corners, w, h){
+  if(!corners || corners.length !== 4) return false;
+  const [tl, tr, bl, br] = corners;
+  const dist = (a,b) => Math.hypot(a[0]-b[0], a[1]-b[1]);
+  const widthTop = dist(tl, tr), widthBottom = dist(bl, br);
+  const heightLeft = dist(tl, bl), heightRight = dist(tr, br);
+  const minSpan = Math.min(w, h) * 0.30;
+  if(widthTop < minSpan || widthBottom < minSpan || heightLeft < minSpan || heightRight < minSpan) return false;
+  // 위/아래, 좌/우 변의 길이가 서로 너무 다르면(마커 하나가 엉뚱한 곳으로 튐) 실패로 본다.
+  if(Math.abs(widthTop-widthBottom) > Math.max(widthTop,widthBottom)*0.5) return false;
+  if(Math.abs(heightLeft-heightRight) > Math.max(heightLeft,heightRight)*0.5) return false;
+  return true;
+}
+
+function computeHomography(src, dst){
+  const A = [], b = [];
+  for(let i=0;i<4;i++){
+    const [x,y] = src[i], [X,Y] = dst[i];
+    A.push([x,y,1,0,0,0,-x*X,-y*X]); b.push(X);
+    A.push([0,0,0,x,y,1,-x*Y,-y*Y]); b.push(Y);
+  }
+  const h = solveLinear(A, b);
+  return [h[0],h[1],h[2], h[3],h[4],h[5], h[6],h[7],1];
+}
+
+function solveLinear(A, b){
+  const n = A.length;
+  const M = A.map((row,i)=>[...row, b[i]]);
+  for(let col=0; col<n; col++){
+    let pivot = col;
+    for(let r=col+1;r<n;r++) if(Math.abs(M[r][col])>Math.abs(M[pivot][col])) pivot=r;
+    [M[col],M[pivot]] = [M[pivot],M[col]];
+    const pv = M[col][col] || 1e-9;
+    for(let c=col;c<=n;c++) M[col][c] /= pv;
+    for(let r=0;r<n;r++){ if(r===col) continue; const f = M[r][col]; for(let c=col;c<=n;c++) M[r][c] -= f*M[col][c]; }
+  }
+  return M.map(row=>row[n]);
+}
+
+function applyH(Hm, x, y){
+  const X = Hm[0]*x+Hm[1]*y+Hm[2], Y = Hm[3]*x+Hm[4]*y+Hm[5], Wd = Hm[6]*x+Hm[7]*y+Hm[8];
+  return [X/Wd, Y/Wd];
+}
+
+function invertH(Hm){
+  const [a,b,c,d,e,f,g,h,i] = Hm;
+  const A = e*i-f*h, B = -(d*i-f*g), C = d*h-e*g;
+  const D = -(b*i-c*h), E = a*i-c*g, F = -(a*h-b*g);
+  const G = b*f-c*e, Hh = -(a*f-c*d), I = a*e-b*d;
+  const det = a*A + b*B + c*C;
+  return [A/det,D/det,G/det, B/det,E/det,Hh/det, C/det,F/det,I/det];
+}
+
+function warpImage(srcCanvas, dstCanvas, Hm, W, H){
+  const invH = invertH(Hm);
+  const sctx = srcCanvas.getContext('2d');
+  const sdata = sctx.getImageData(0,0,srcCanvas.width, srcCanvas.height);
+  const dctx = dstCanvas.getContext('2d');
+  const ddata = dctx.createImageData(W, H);
+  const sw = srcCanvas.width, sh = srcCanvas.height;
+  for(let y=0;y<H;y++){
+    for(let x=0;x<W;x++){
+      const [sx, sy] = applyH(invH, x, y);
+      let val = [255,255,255,255];
+      if(sx>=0 && sx<sw-1 && sy>=0 && sy<sh-1){
+        const xi = sx|0, yi = sy|0;
+        const idx = (yi*sw+xi)*4;
+        val = [sdata.data[idx], sdata.data[idx+1], sdata.data[idx+2], 255];
+      }
+      const di = (y*W+x)*4;
+      ddata.data[di]=val[0]; ddata.data[di+1]=val[1]; ddata.data[di+2]=val[2]; ddata.data[di+3]=255;
+    }
+  }
+  dctx.putImageData(ddata, 0, 0);
+}
+
+// recognizedAnswers[q]는 그 문항에서 표시된 것으로 인식된 보기 번호들의 배열이다.
+// 복수정답(예: 2,3 모두가 정답) 문항은 학생도 여러 보기를 표시하므로, 가장 진한 보기 하나만
+// 고르지 않고 진하게 칠해진 보기를 전부 찾는다.
+//
+// 판정 방법: 한 문항의 보기들을 진하기 순으로 정렬한 뒤, 값이 가장 크게 벌어지는 지점(gap)을 찾아
+// 그 위쪽(더 진한 쪽)을 "칠해진 보기"로 판정한다. 문항마다, 그리고 그 문항 안의 보기끼리 상대적으로
+// 비교하기 때문에 사진 전체의 조명이 고르지 않거나 살짝 그림자가 져도 비교적 안정적으로 동작한다.
+function readBubbles(warpCanvas, W, H){
+  recognizedAnswers = new Array(ASSIGNMENT.count).fill(null).map(()=>[]);
+  confidenceFlags = new Array(ASSIGNMENT.count).fill(false);
+  if(!window.__templateCoords) drawTemplate(ASSIGNMENT);
+  const coords = window.__templateCoords.coords;
+  const ctx = warpCanvas.getContext('2d');
+  const imgData = ctx.getImageData(0,0,W,H);
+  const gray = toGrayscale(imgData, W, H);
+  const rPix = Math.max(6, window.__templateCoords.bubbleRRatio * W);
+
+  const MARK_MIN = 55;  // 이 값 미만이면(전 보기가 다 흐림) 전혀 칠하지 않은 것으로 간주
+  const GAP_UNSURE = 22; // 진하기 순서에서 가장 큰 간격이 이보다 좁으면 판정이 애매한 것으로 표시
+
+  for(let q=0; q<coords.length; q++){
+    const qc = coords[q];
+    const y = qc.y*H;
+    const darks = qc.x.map(xr=> bubbleDarkness(gray, W, H, xr*W, y, rPix));
+    const maxD = Math.max(...darks);
+    if(maxD < MARK_MIN){ recognizedAnswers[q] = []; confidenceFlags[q] = true; continue; }
+
+    const sorted = darks.map((d,idx)=>({d,idx})).sort((a,b)=>a.d-b.d);
+    let splitAt = sorted.length - 1; // 기본: 가장 진한 보기 하나만 선택
+    let bestGap = -1;
+    for(let k=1;k<sorted.length;k++){
+      const gap = sorted[k].d - sorted[k-1].d;
+      if(gap > bestGap){ bestGap = gap; splitAt = k; }
+    }
+    const marked = [];
+    for(let k=splitAt; k<sorted.length; k++){
+      if(sorted[k].d >= MARK_MIN) marked.push(sorted[k].idx + 1);
+    }
+    marked.sort((a,b)=>a-b);
+    recognizedAnswers[q] = marked;
+
+    if(bestGap < GAP_UNSURE) confidenceFlags[q] = true;
+  }
+}
+
+function bubbleDarkness(gray, W, H, cx, cy, r){
+  let sum=0, n=0; const r2 = r*r;
+  for(let y=Math.max(0,cy-r); y<Math.min(H,cy+r); y++){
+    for(let x=Math.max(0,cx-r); x<Math.min(W,cx+r); x++){
+      const dx=x-cx, dy=y-cy;
+      if(dx*dx+dy*dy<=r2*0.6){ sum += 255-gray[Math.floor(y)*W+Math.floor(x)]; n++; }
+    }
+  }
+  return n ? sum/n : 0;
+}
+
+function renderQGrid(){
+  const grid = document.getElementById('qgrid');
+  grid.innerHTML = '';
+  const circled = n => n >= 1 && n <= 20 ? String.fromCharCode(0x245F + n) : String(n);
+  for(let i=0;i<ASSIGNMENT.count;i++){
+    const cell = document.createElement('div');
+    const marks = recognizedAnswers[i] || [];
+    cell.className = 'qcell' + (confidenceFlags[i] ? ' unsure' : '');
+    cell.innerHTML = `${i+1}번<small>${marks.length ? marks.map(circled).join(' ') : '-'}</small>`;
+    cell.onclick = ()=>editAnswer(i);
+    grid.appendChild(cell);
+  }
+}
+function editAnswer(i){
+  const cur = (recognizedAnswers[i] || []).join(',');
+  const v = prompt(`${i+1}번 답 (1~${ASSIGNMENT.choices}, 복수 선택은 콤마로 구분: 예) 2,3 / 무응답은 0 또는 빈칸)`, cur);
+  if(v===null) return;
+  const nums = v.split(',').map(s=>s.trim()).filter(s=>s!=='' && s!=='0').map(s=>parseInt(s,10));
+  if(nums.some(n=>isNaN(n) || n<1 || n>ASSIGNMENT.choices)){ alert('올바른 번호를 입력하세요.'); return; }
+  recognizedAnswers[i] = [...new Set(nums)].sort((a,b)=>a-b);
+  confidenceFlags[i] = false;
+  renderQGrid();
+}
+
+document.getElementById('submitFinalBtn').addEventListener('click', ()=>{
+  const btn = document.getElementById('submitFinalBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>채점 중... ';
+  RESULT_RETURN = 'home';
+  google.script.run
+    .withSuccessHandler(res=>{ btn.disabled=false; btn.textContent='채점하기'; showResult(res); fetchAiOverall_(res); })
+    .withFailureHandler(err=>{ btn.disabled=false; btn.textContent='채점하기'; alert('오류: '+err.message); })
+    .gradeAndSubmit({ name: USER.name, week: ASSIGNMENT.week, studentAnswers: recognizedAnswers });
+});
+
+/* ===================== 결과 화면 ===================== */
+// 색종이(컨페티) 조각을 화면에 잠깐 뿌린다. 만점을 받았을 때만 호출된다.
+function fireConfetti_(){
+  const colors = ['#DE7466','#F2C14E','#5F9A70','#C99B78','#4A2F23'];
+  const n = 44;
+  for(let i=0;i<n;i++){
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.left = (Math.random()*100) + 'vw';
+    el.style.background = colors[i % colors.length];
+    el.style.animationDuration = (1.6 + Math.random()*1.2) + 's';
+    el.style.animationDelay = (Math.random()*0.4) + 's';
+    el.style.transform = 'rotate(' + Math.floor(Math.random()*360) + 'deg)';
+    document.body.appendChild(el);
+    setTimeout(()=> el.remove(), 3200);
+  }
+}
+
+// 채점 결과를 먼저 보여준 뒤, AI 총평만 따로 받아와서 총평 칸을 교체한다.
+let AI_OVERALL_TOKEN = 0;
+function fetchAiOverall_(res){
+  if(!res || !res.aiPending) return;
+  const token = ++AI_OVERALL_TOKEN;
+  const el = document.getElementById('resultOverall');
+  const PENDING = '\n\n⏳ 더 자세한 총평을 작성하고 있어요…';
+  el.textContent = res.overall + PENDING;
+  // 너무 오래 걸리면(45초) 기다리는 표시를 지우고 기본 총평만 보여준다.
+  const timer = setTimeout(()=>{ if(token === AI_OVERALL_TOKEN) el.textContent = res.overall; }, 45000);
+  google.script.run
+    .withSuccessHandler(text=>{ clearTimeout(timer); if(token === AI_OVERALL_TOKEN) el.textContent = text || res.overall; })
+    .withFailureHandler(()=>{ clearTimeout(timer); if(token === AI_OVERALL_TOKEN) el.textContent = res.overall; })
+    .generateAiOverall({ name: USER.name, row: res.row });
+}
+
+function showResult(res){
+  document.getElementById('resultTitle').textContent = res.week + ' · ' + res.title;
+  const correctCount = res.detail.filter(d=>d.isCorrect).length;
+  const isPerfect = res.detail.length > 0 && correctCount === res.detail.length;
+  document.getElementById('resultCorrect').textContent = correctCount;
+  document.getElementById('resultTotalLabel').textContent = '/ ' + res.detail.length + '문항 정답';
+  document.getElementById('resultScoreLabel').textContent = res.countMode ? ('정답률 ' + (res.total ? Math.round(res.score/res.total*100) : 0) + '%') : (res.score + '점');
+
+  const oldBanner = document.getElementById('perfectBanner');
+  if(oldBanner) oldBanner.remove();
+  if(isPerfect){
+    const banner = document.createElement('div');
+    banner.id = 'perfectBanner';
+    banner.className = 'perfectBanner';
+    banner.innerHTML = `<span class="pb-emoji">🎉</span><span class="pb-text">${res.title} · 만점 축하해요!</span>`;
+    document.getElementById('resultScoreLabel').closest('.score').after(banner);
+    fireConfetti_();
+  }
+
+  const wrongEl = document.getElementById('resultWrongList');
+  const wrongs = res.detail.filter(d=>!d.isCorrect);
+  if(wrongs.length === 0){
+    wrongEl.innerHTML = emptyState_('🎉 전 문항 정답입니다!', '오답 없이 완벽하게 풀었어요.');
+  } else {
+    wrongEl.innerHTML = wrongs.map(w=>`
+      <div class="card" style="padding:16px; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="width:34px; height:34px; border:2px solid var(--ink); background:#FFE6DF; color:var(--bad); font-family:var(--font-display); font-size:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">${w.q}</span>
+          <span style="font-size:13px; color:var(--muted);">내 답 <b style="color:var(--bad);">${w.given}</b> · 정답 <b style="color:var(--accent-dark);">${w.correct}</b></span>
+        </div>
+        <div style="font-size:13.5px; line-height:1.6;">${w.explain || ''}</div>
+      </div>
+    `).join('');
+  }
+
+  renderAnswerGrid(res.detail);
+
+  // 점수에 따른 정다미 상태: 90% 이상 응원 / 50% 이하 아쉬움 / 그 사이 생각
+  {
+    const pct0 = res.detail.length ? (correctCount / res.detail.length) * 100 : 0;
+    if(pct0 >= 90){ setAsset_('resultMascot', DAMI.cheer, 'pixel-face-icons/dami-face-excited.png'); setAsset_('resultFace', 'pixel-face-icons/dami-face-touched.png'); }
+    else if(pct0 <= 50){ setAsset_('resultMascot', 'pixel-pet/dami-oops.png'); setAsset_('resultFace', 'pixel-face-icons/dami-face-sad.png'); }
+    else { setAsset_('resultMascot', DAMI.thinking, 'pixel-pet/dami-thinking.png'); setAsset_('resultFace', 'pixel-face-icons/dami-face-confident.png'); }
+  }
+
+  AI_OVERALL_TOKEN++;
+  document.getElementById('resultOverall').textContent = res.overall;
+  document.getElementById('resultBackBtn').textContent = RESULT_RETURN === 'admin' ? '학생 목록으로 돌아가기' : '홈으로 돌아가기';
+  const cheer = document.getElementById('scoreCheer');
+  if(cheer){
+    cheer.classList.remove('show');
+    cheer.setAttribute('aria-hidden','true');
+    const pct = res.detail.length ? (correctCount / res.detail.length) * 100 : 0;
+    if(pct >= 90){
+      void cheer.offsetWidth;
+      cheer.classList.add('show');
+      cheer.setAttribute('aria-hidden','false');
+      setTimeout(()=>cheer.classList.remove('show'), 3200);
+    }
+  }
+  const sad = document.getElementById('scoreSad');
+  if(sad){
+    sad.classList.remove('show');
+    sad.setAttribute('aria-hidden','true');
+    const pct = res.detail.length ? (correctCount / res.detail.length) * 100 : 0;
+    if(pct <= 50){
+      void sad.offsetWidth;
+      sad.classList.add('show');
+      sad.setAttribute('aria-hidden','false');
+      setTimeout(()=>sad.classList.remove('show'), 3200);
+    }
+  }
+  showScreen('view-result');
+}
+
+function renderAnswerGrid(detail){
+  const grid = document.getElementById('resultAnswerGrid');
+  const circled = n => n >= 1 && n <= 20 ? String.fromCharCode(0x245F + n) : String(n);
+  const circledAnswers = value => String(value).split(',').map(v=>{
+    const n = parseInt(v.trim(), 10);
+    return Number.isFinite(n) && n >= 1 && n <= 20 ? circled(n) : v.trim();
+  }).join(' ');
+  grid.innerHTML = detail.map(d=>`
+    <div class="anscell ${d.isCorrect ? 'correct' : 'wrong'}">
+      <span>${d.q}번</span><small>${circledAnswers(d.given)}</small>
+    </div>
+  `).join('');
+}
+
+function goHomeAfterResult(){
+  if(RESULT_RETURN === 'admin' && ADMIN_DETAIL_NAME){
+    adminOpenDetail(ADMIN_DETAIL_NAME);
+    return;
+  }
+  loadDashboard();
+}
+
+/* ===================== 관리자: 강의 수강 현황 (Lecture.gs) ===================== */
+let LECTURE_STATUS = null;   // getLectureStatus() 결과 캐시
+
+function loadLectureStatus_(after){
+  google.script.run
+    .withSuccessHandler(st=>{ LECTURE_STATUS = st; renderLectureCard_(); if(after) after(); })
+    .withFailureHandler(err=>{
+      const b = document.getElementById('adminLectureBody');
+      if(b) b.textContent = '수강 현황을 불러오지 못했어요: ' + err.message;
+    })
+    .getLectureStatus();
+}
+
+function lectureLink_(id){
+  return (LECTURE_STATUS && LECTURE_STATUS.url ? LECTURE_STATUS.url : '') + '?lecture=' + encodeURIComponent(id);
+}
+
+function copyText_(text, msgEl){
+  const done = ()=>{ if(msgEl){ msgEl.textContent = '복사했어요'; setTimeout(()=>{ msgEl.textContent=''; }, 1600); } };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>{ window.prompt('아래 내용을 복사하세요', text); });
+  } else { window.prompt('아래 내용을 복사하세요', text); }
+}
+
+function lecCell_(r){
+  if(r.state === 'na') return `<span class="lecst na" title="대상 아님">–</span>`;
+  if(r.state === 'done') return `<span class="lecst done" title="${escH_(r.doneAt)} 완료${r.count>=2?' · '+r.count+'번 들음':''}">✓ ${escH_((r.doneAt||'').slice(5,10).replace('-','/'))}${r.count>=2?' · '+r.count+'회':''}</span>`;
+  if(r.state === 'partial') return `<span class="lecst partial" title="최근 ${escH_(r.last)}">${r.heard}/${r.total}</span>`;
+  return `<span class="lecst none">안 들음</span>`;
+}
+
+/* 강의 수강 현황 카드: 기본은 접힌 상태(반별 요약 한 줄), 「보기」를 누르면 학생별 표가 펼쳐진다 */
+function lectureFolded_(){ try { return localStorage.getItem('grader-lec-fold') !== 'open'; } catch(e){ return true; } }
+function toggleLectureFold_(){
+  const open = lectureFolded_();
+  try { localStorage.setItem('grader-lec-fold', open ? 'open' : 'closed'); } catch(e){}
+  applyLectureFold_();
+}
+function applyLectureFold_(){
+  const folded = lectureFolded_();
+  const body = document.getElementById('adminLectureBody'), btn = document.getElementById('lecFoldBtn');
+  if(body) body.style.display = folded ? 'none' : 'block';
+  if(btn) btn.textContent = folded ? '보기 ▾' : '접기 ▴';
+}
+function renderLectureSummary_(cls, label){
+  const el = document.getElementById('adminLectureSummary');
+  if(!el) return;
+  if(!LECTURE_STATUS){ el.textContent = '불러오는 중…'; return; }
+  if(!cls || !cls.lectures.length){ el.innerHTML = `<b style="color:var(--ink)">${escH_(label||'')}</b> 반이 대상인 강의가 없어요.`; return; }
+  el.innerHTML = `<div class="lecmini">${cls.lectures.slice(-4).reverse().map(l=>`<span class="lecst ${l.totalStudents && l.doneCount>=l.totalStudents?'done':(l.doneCount?'partial':'none')}" style="min-width:0;" title="${escH_(l.title)}">${escH_(l.title.length>12 ? l.title.slice(0,12)+'…' : l.title)} ${l.doneCount}/${l.totalStudents}</span>`).join('')}</div>`;
+}
+
+/* 학생 홈 「내 강의」 / 학부모 「강의 수강」 */
+let MY_LECTURES = null;
+function loadMyLectures_(){
+  if(!USER) return;
+  const who = USER.name;
+  google.script.run
+    .withSuccessHandler(r=>{ if(!USER || USER.name !== who) return; MY_LECTURES = r; renderMyLectures_(); })
+    .withFailureHandler(()=>{})
+    .getMyLectures(who);
+}
+function renderMyLectures_(){
+  const parent = MODE === 'parent';
+  const card = document.getElementById(parent ? 'parentLectureCard' : 'homeLectureCard');
+  const list = document.getElementById(parent ? 'parentLectureList' : 'homeLectureList');
+  const meta = document.getElementById(parent ? 'parentLectureMeta' : 'homeLectureMeta');
+  const L = (MY_LECTURES && MY_LECTURES.lectures) || [];
+  if(!card) return;
+  if(!L.length){ card.style.display = 'none'; return; }
+  card.style.display = 'flex';
+  const done = L.filter(l=>l.state==='done').length;
+  meta.textContent = `${done}/${L.length}개 완료`;
+  const base = (MY_LECTURES.url || '').replace(/\?.*$/, '');
+  list.innerHTML = L.map(l=>{
+    const pctv = l.total ? Math.round(l.heard / l.total * 100) : 0;
+    const st = l.state === 'done' ? `완료 · ${escH_((l.doneAt||'').slice(5,10).replace('-','/'))}${l.count>=2?' · '+l.count+'번 들음':''}` : l.state === 'partial' ? `${l.heard}/${l.total}장 들음` : `${l.slides}장 · 아직 안 들었어요`;
+    const btn = parent ? `<span class="go ${l.state==='done'?'done':l.state==='partial'?'part':''}">${l.state==='done'?'완료':l.state==='partial'?'듣는 중':'안 들음'}</span>`
+      : `<span class="go ${l.state==='done'?'done':l.state==='partial'?'part':''}">${l.state==='done'?'다시 보기':l.state==='partial'?'이어 듣기':'듣기'}</span>`;
+    const inner = `<div class="ic">${escH_((l.area||'강')[0])}</div><div style="min-width:0;"><div class="tt">${escH_(l.title)}</div><div class="mm">${escH_(l.unit ? l.unit + ' · ' : '')}${st}</div>${l.state==='partial'?`<div class="lecbar"><i style="width:${pctv}%"></i></div>`:''}</div>${btn}`;
+    return parent || !base ? `<div class="mylec">${inner}</div>` : `<a class="mylec" href="${escH_(base + '?lecture=' + encodeURIComponent(l.id))}" target="_top">${inner}</a>`;
+  }).join('');
+}
+
+function renderLectureCard_(){
+  const body = document.getElementById('adminLectureBody');
+  if(!body) return;
+  applyLectureFold_();
+  {
+    const ov0 = ADMIN_OVERVIEW, lb0 = ov0 && ov0.classes[ADMIN_ACTIVE] ? ov0.classes[ADMIN_ACTIVE].label : null;
+    renderLectureSummary_(LECTURE_STATUS ? LECTURE_STATUS.classes.find(c => c.label === lb0) : null, lb0);
+  }
+  if(!LECTURE_STATUS){ body.textContent = '불러오는 중…'; return; }
+  const ov = ADMIN_OVERVIEW;
+  const label = ov && ov.classes[ADMIN_ACTIVE] ? ov.classes[ADMIN_ACTIVE].label : null;
+  const cls = LECTURE_STATUS.classes.find(c => c.label === label);
+  if(!LECTURE_STATUS.lectures.length){
+    body.innerHTML = '아직 등록된 강의가 없어요. 「강의 관리」에서 강의를 등록해 주세요.';
+    return;
+  }
+  if(!cls || !cls.lectures.length){
+    body.innerHTML = `<b style="color:var(--ink)">${escH_(label||'')}</b> 반이 대상인 강의가 없어요. 「강의 관리」에서 대상을 확인해 주세요.`;
+    return;
+  }
+  const lecs = cls.lectures.slice(-6);   // 최근 6개 강의만 표로
+  const names = lecs[0].students.map(s => s.name);
+  const head = `<tr><th class="nm">학생</th>${lecs.map(l=>`<th title="${escH_(l.title)}">${escH_(l.title.length>9 ? l.title.slice(0,9)+'…' : l.title)}</th>`).join('')}</tr>`;
+  const rows = names.map((n, i)=>`<tr><td class="nm">${escH_(n)}</td>${lecs.map(l=>`<td>${lecCell_(l.students[i])}</td>`).join('')}</tr>`).join('');
+  const sums = lecs.map((l, k)=>`<div class="lecsum">
+      <span><b style="color:var(--ink)">${escH_(l.title)}</b> · 완료 ${l.doneCount}/${l.totalStudents}명${l.pub ? '' : ' · <span style="color:var(--warn)">숨김</span>'}</span>
+      ${l.notDone.length ? `<span style="display:flex; align-items:center; gap:6px;"><span id="lecCopyMsg${k}"></span><button class="btn ghost smallbtn" onclick="copyNotDone_(${k})">미수강 ${l.notDone.length}명 복사</button></span>` : '<span style="color:var(--good); font-weight:700;">모두 들었어요</span>'}
+    </div>`).join('');
+  body.innerHTML = `<div class="lecwrap"><table class="lectbl">${head}${rows}</table></div>
+    <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">${sums}</div>`;
+  body.dataset.cls = label;
+}
+
+function copyNotDone_(k){
+  const label = ADMIN_OVERVIEW.classes[ADMIN_ACTIVE].label;
+  const cls = LECTURE_STATUS.classes.find(c => c.label === label);
+  const l = cls.lectures.slice(-6)[k];
+  const text = `[${l.title}] 강의 아직 안 들은 학생: ${l.notDone.join(', ')}\n강의 링크: ${lectureLink_(l.id)}`;
+  copyText_(text, document.getElementById('lecCopyMsg'+k));
+}
+
+/* ---- 강의 관리 화면 ---- */
+function openLectureScreen(){
+  showScreen('view-admin-lecture');
+  if(LECTURE_STATUS) renderLectureList_();
+  loadLectureStatus_(renderLectureList_);
+  loadAudioStatus_();
+}
+
+/* ---- AI 음성 (Gemini) — 강의마다 미리 만들어 두기 ---- */
+let AUDIO_STATUS = null;            // getLectureAudioStatus() 결과
+const AUDIO_JOB = {};               // 강의ID → 진행 메시지 (만드는 중이면)
+function loadAudioStatus_(){
+  google.script.run
+    .withSuccessHandler(r=>{ AUDIO_STATUS = r; renderLectureList_(); })
+    .withFailureHandler(()=>{})
+    .getLectureAudioStatus();
+}
+function audioLine_(id){
+  if(!AUDIO_STATUS) return '<span style="color:var(--muted);">🔊 AI 음성 상태 확인 중…</span>';
+  const a = (AUDIO_STATUS.lectures||[]).find(x=>x.id===id);
+  if(!a) return '';
+  if(AUDIO_JOB[id]) return `<span style="color:var(--accent-dark);">🔊 ${escH_(AUDIO_JOB[id])}</span>`;
+  if(a.off) return '<span style="color:var(--muted);">🔊 AI 음성 꺼짐 (출제기 설정) · 기기 음성으로 읽어요</span>';
+  if(!AUDIO_STATUS.keyOk) return '<span style="color:var(--warn);">🔊 AI 음성을 쓰려면 스크립트 속성에 GEMINI_API_KEY가 필요해요</span>';
+  const full = a.total && a.ready >= a.total;
+  return `<span style="color:${full?'var(--good)':'var(--muted)'};">🔊 AI 음성 ${full?'준비 완료':'준비 '+a.ready+'/'+a.total+'장'} · 목소리 ${escH_(a.voice)}${full?'':' · 없는 장은 기기 음성으로 읽어요'}</span>`;
+}
+function audioBtn_(id){
+  const a = AUDIO_STATUS && (AUDIO_STATUS.lectures||[]).find(x=>x.id===id);
+  if(!a || a.off || !AUDIO_STATUS.keyOk || AUDIO_JOB[id]) return '';
+  const full = a.total && a.ready >= a.total;
+  return full ? '' : `<button class="btn smallbtn" onclick="buildAudio_('${escH_(id)}')">🔊 AI 음성 만들기</button>`;
+}
+function buildAudio_(id){
+  AUDIO_JOB[id] = '만드는 중… (장마다 30초쯤 걸려요. 이 화면을 열어 두세요)';
+  renderLectureList_();
+  const step = ()=>{
+    google.script.run
+      .withSuccessHandler(r=>{
+        const a = (AUDIO_STATUS.lectures||[]).find(x=>x.id===id);
+        if(a && r.total != null){ a.total = r.total; a.ready = r.ready; }
+        if(r.retryIn){ AUDIO_JOB[id] = r.message; renderLectureList_(); setTimeout(step, r.retryIn*1000); return; }
+        if(r.ok && !r.done){ AUDIO_JOB[id] = r.message + ' (이 화면을 열어 두세요)'; renderLectureList_(); step(); return; }
+        delete AUDIO_JOB[id];
+        renderLectureList_();
+        const m = document.getElementById('lecMsg_'+id);
+        if(m){ m.style.color = r.ok ? 'var(--good)' : 'var(--bad)'; m.textContent = r.message || ''; }
+      })
+      .withFailureHandler(err=>{
+        delete AUDIO_JOB[id]; renderLectureList_();
+        const m = document.getElementById('lecMsg_'+id);
+        if(m){ m.style.color = 'var(--bad)'; m.textContent = '오류: ' + err.message; }
+      })
+      .buildLectureAudio(id);
+  };
+  step();
+}
+
+function renderLectureList_(){
+  const box = document.getElementById('lecList');
+  const list = (LECTURE_STATUS && LECTURE_STATUS.lectures) || [];
+  if(!list.length){ box.innerHTML = emptyState_('등록된 강의가 없어요', '위에서 강의 데이터를 붙여넣어 등록해 주세요.'); return; }
+  box.innerHTML = list.slice().reverse().map(l=>`<div class="lecitem">
+      <div class="row" style="gap:8px; flex-wrap:wrap;">
+        <span class="ttl">${escH_(l.title)} <span class="chip" style="background:var(--accent-tint); color:var(--accent-dark);">${escH_(l.area||'')}</span></span>
+        <span class="chip" style="background:${l.pub?'var(--good-tint)':'var(--warn-tint)'}; color:${l.pub?'var(--good)':'var(--warn)'};">${l.pub?'공개':'숨김'}</span>
+      </div>
+      <div style="font-size:12px; color:var(--muted);">강의ID ${escH_(l.id)} · ${l.slides}장 · 대상 ${escH_(l.target||'(없음)')} · 등록 ${escH_(l.date)}</div>
+      <div style="font-size:12px; color:var(--accent-dark); word-break:break-all;">${escH_(lectureLink_(l.id))}</div>
+      <div style="font-size:12px;">${audioLine_(l.id)}</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        ${audioBtn_(l.id)}
+        <button class="btn smallbtn" onclick="copyText_(lectureLink_('${escH_(l.id)}'), document.getElementById('lecMsg_${escH_(l.id)}'))">학생 링크 복사</button>
+        <a class="btn ghost smallbtn" href="${escH_(lectureLink_(l.id))}" target="_blank">미리 듣기</a>
+        <button class="btn ghost smallbtn" onclick="toggleLecturePub_('${escH_(l.id)}', ${!l.pub})">${l.pub?'숨기기':'공개하기'}</button>
+        <button class="btn ghost smallbtn" onclick="editLectureTarget_('${escH_(l.id)}')">대상 바꾸기</button>
+        <span id="lecMsg_${escH_(l.id)}" style="font-size:12px; color:var(--good);"></span>
+      </div>
+    </div>`).join('');
+}
+
+function saveLecture_(){
+  const msg = document.getElementById('lecSaveMsg');
+  const json = document.getElementById('lecJson').value.trim();
+  const target = document.getElementById('lecTarget').value.trim();
+  if(!json){ msg.style.color='var(--bad)'; msg.textContent = '강의 데이터를 붙여넣어 주세요.'; return; }
+  if(!target){ msg.style.color='var(--bad)'; msg.textContent = '대상을 적어 주세요. 예: 2학년'; return; }
+  msg.style.color='var(--muted)'; msg.textContent = '저장 중…';
+  google.script.run
+    .withSuccessHandler(r=>{
+      msg.style.color = r.ok ? 'var(--good)' : 'var(--bad)';
+      msg.textContent = r.message;
+      if(r.ok){ document.getElementById('lecJson').value = ''; loadLectureStatus_(renderLectureList_); }
+    })
+    .withFailureHandler(err=>{ msg.style.color='var(--bad)'; msg.textContent = '오류: ' + err.message; })
+    .saveLecture({ json, target, pub: document.getElementById('lecPub').checked });
+}
+
+function toggleLecturePub_(id, pub){
+  google.script.run
+    .withSuccessHandler(()=> loadLectureStatus_(renderLectureList_))
+    .withFailureHandler(err=> alert('오류: ' + err.message))
+    .setLecturePublic(id, pub);
+}
+
+function editLectureTarget_(id){
+  const cur = (LECTURE_STATUS.lectures.find(l=>l.id===id)||{}).target || '';
+  const v = window.prompt('새 대상을 적어 주세요. 반 이름·학생 이름을 콤마로 (예: A중 2학년 / 김가람,이도윤 / A중 2학년,B중 2학년 박서준)', cur);
+  if(v == null) return;
+  google.script.run
+    .withSuccessHandler(()=> loadLectureStatus_(renderLectureList_))
+    .withFailureHandler(err=> alert('오류: ' + err.message))
+    .setLectureTarget(id, v);
+}
+
+resumeLogin_();
+</script>
+</body>
+</html>
+
